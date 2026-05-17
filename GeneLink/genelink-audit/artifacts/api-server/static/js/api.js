@@ -77,28 +77,63 @@ function renderNavbar(activePage) {
   const user = getUser();
   const initials = user ? (user.avatar_initials || user.username.slice(0, 2).toUpperCase()) : "";
   const pages = [
-    { href: BASE + "/dashboard", label: "Painel" },
-    { href: BASE + "/search", label: "Busca de Genes" },
-    { href: BASE + "/parcerias", label: "Parcerias" },
-    { href: BASE + "/forum", label: "Fórum" },
-    { href: BASE + "/preprints", label: "Pré-publicações" },
-    { href: BASE + "/chat", label: "Chat" },
-    { href: BASE + "/institucional", label: "Instituições" },
-    { href: BASE + "/canais", label: "Canais" },
-    { href: BASE + "/recursos", label: "Recursos" },
+    { href: BASE + "/dashboard",    label: "Painel",           icon: "🏠" },
+    { href: BASE + "/search",       label: "Busca de Genes",   icon: "🔬" },
+    { href: BASE + "/parcerias",    label: "Parcerias",        icon: "🤝" },
+    { href: BASE + "/forum",        label: "Fórum",            icon: "💬" },
+    { href: BASE + "/preprints",    label: "Pré-publicações",  icon: "📄" },
+    { href: BASE + "/chat",         label: "Chat",             icon: "✉️"  },
+    { href: BASE + "/institucional",label: "Instituições",     icon: "🏛️" },
+    { href: BASE + "/canais",       label: "Canais",           icon: "📡" },
+    { href: BASE + "/recursos",     label: "Recursos",         icon: "📚" },
   ];
+  if (user && user.is_admin) {
+    pages.push({ href: BASE + "/admin", label: "Admin", icon: "⚙️" });
+  }
   const navLinks = pages.map(p =>
     `<a href="${p.href}" class="${activePage === p.href ? "active" : ""}">${p.label}</a>`
   ).join("");
+  const drawerItems = pages.map(p =>
+    `<a href="${p.href}" class="gl-drawer-item${activePage === p.href ? " active" : ""}">
+      <span class="gl-drawer-icon">${p.icon}</span>
+      <span>${p.label}</span>
+    </a>`
+  ).join("");
+
   return `
+    <!-- Overlay + Drawer -->
+    <div class="gl-drawer-overlay" id="gl-drawer-overlay" onclick="_glCloseDrawer()"></div>
+    <div class="gl-drawer" id="gl-drawer">
+      <div class="gl-drawer-header">
+        <div class="gl-drawer-brand">
+          <div class="logo-icon" style="width:32px;height:32px;font-size:.9rem">GL</div>
+          <span>GeneLink</span>
+        </div>
+        <button class="gl-drawer-close" onclick="_glCloseDrawer()" aria-label="Fechar menu">✕</button>
+      </div>
+      ${user ? `<div class="gl-drawer-user">
+        <div class="avatar" style="width:38px;height:38px;font-size:.9rem;flex-shrink:0">${initials}</div>
+        <div>
+          <div style="font-weight:700;font-size:.9rem">${user.full_name || user.username}</div>
+          <div style="font-size:.75rem;opacity:.65">@${user.username}${user.is_verified ? ' · ✓ Verificado' : ''}</div>
+        </div>
+      </div>` : ""}
+      <nav class="gl-drawer-nav">${drawerItems}</nav>
+      <div class="gl-drawer-footer">
+        <button class="gl-drawer-signout" onclick="logout()">↩ Sair da conta</button>
+      </div>
+    </div>
+
     <nav class="navbar">
-      <div class="navbar-brand">
+      <button class="gl-menu-btn" onclick="_glOpenDrawer()" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="navbar-brand" onclick="window.location='${BASE}/dashboard'" style="cursor:pointer">
         <div class="logo-icon">GL</div>
         GeneLink
       </div>
       <div class="navbar-nav">${navLinks}</div>
       <div class="navbar-right">
-        ${user && user.is_admin ? `<a href="${BASE}/admin" style="color:rgba(255,255,255,.7);font-size:.78rem;border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:3px 8px;">Admin</a>` : ""}
         <a href="${BASE}/profile" style="color:rgba(255,255,255,.82);font-size:.85rem;display:flex;align-items:center;gap:4px">
           ${user && user.is_verified ? `<span style="color:#90caf9;font-size:.75rem" title="Pesquisador Verificado">✓</span>` : ""}
           ${user ? user.username : ""}
@@ -107,6 +142,17 @@ function renderNavbar(activePage) {
         <button class="btn btn-ghost btn-sm" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.82);" onclick="logout()">Sair</button>
       </div>
     </nav>`;
+}
+
+function _glOpenDrawer() {
+  document.getElementById("gl-drawer").classList.add("open");
+  document.getElementById("gl-drawer-overlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+function _glCloseDrawer() {
+  document.getElementById("gl-drawer").classList.remove("open");
+  document.getElementById("gl-drawer-overlay").classList.remove("open");
+  document.body.style.overflow = "";
 }
 
 async function logout() {
