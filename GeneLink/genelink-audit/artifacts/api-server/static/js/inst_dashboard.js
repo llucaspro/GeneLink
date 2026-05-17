@@ -27,19 +27,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function renderHero() {
   if (!instData) return;
-  document.getElementById('inst-avatar').textContent = instData.logo_initials || instData.short_name?.[0] || '🏛️';
+  const initial = instData.logo_initials || instData.short_name?.[0] || '🏛️';
+  document.getElementById('inst-avatar').textContent = initial;
   document.getElementById('inst-name-title').textContent = instData.name;
   document.getElementById('inst-meta').textContent =
     `${instData.type || 'Instituição'} · ${instData.city || ''}, ${instData.state || ''}`;
   document.getElementById('seal-name').textContent = `[Verificado por: ${instData.name}]`;
+
+  // Pills
+  const typeEl = document.getElementById('inst-type-pill');
+  const cityEl = document.getElementById('inst-city-pill');
+  if (typeEl) typeEl.textContent = instData.type || 'Instituição';
+  if (cityEl) cityEl.textContent = [instData.city, instData.state].filter(Boolean).join(', ') || '—';
+
+  // Metrics
+  const domainEl = document.getElementById('m-domain');
+  if (domainEl) domainEl.textContent = instData.email_domain ? '@' + instData.email_domain : '—';
 }
 
 // ── Tab switching ──
+const _TABS = ['members', 'library', 'partnerships'];
+
 function switchTab(name) {
-  document.querySelectorAll('.panel-tab').forEach((t, i) => {
-    const sections = ['members','library','partnerships'];
-    t.classList.toggle('active', sections[i] === name);
-    document.getElementById('tab-' + sections[i]).classList.toggle('active', sections[i] === name);
+  document.querySelectorAll('.dash-tab').forEach((t, i) => {
+    t.classList.toggle('active', _TABS[i] === name);
+  });
+  _TABS.forEach(id => {
+    const panel = document.getElementById('tab-' + id);
+    if (panel) panel.classList.toggle('active', id === name);
   });
 }
 
@@ -51,30 +66,45 @@ async function loadMembers() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     const members = data.members || [];
-    document.getElementById('members-count').textContent = `${members.length} pesquisador${members.length !== 1 ? 'es' : ''}`;
+
+    // Update metric
+    const mEl = document.getElementById('m-members');
+    if (mEl) mEl.textContent = members.length;
+
+    const countEl = document.getElementById('members-count');
+    if (countEl) countEl.textContent = `${members.length} pesquisador${members.length !== 1 ? 'es' : ''}`;
+
     if (!members.length) {
-      list.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>Nenhum pesquisador vinculado ainda.<br>Pesquisadores com e-mail <strong>@${instData.email_domain || 'seu-domínio'}</strong> aparecem automaticamente.</p></div>`;
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">👥</div>
+          <h3>Nenhum pesquisador vinculado ainda.</h3>
+          <p style="margin-top:8px;font-size:.83rem">Pesquisadores com e-mail <strong>@${instData.email_domain || 'seu-domínio'}</strong> aparecem automaticamente.</p>
+        </div>`;
       return;
     }
+
     list.innerHTML = members.map(m => `
-      <div class="member-card">
-        <div class="member-avatar">${m.avatar_initials || m.username?.[0]?.toUpperCase() || '?'}</div>
+      <div class="member-row">
+        <div class="member-avatar">${esc(m.avatar_initials || m.username?.[0]?.toUpperCase() || '?')}</div>
         <div class="member-info">
-          <strong>${m.full_name || m.username}</strong>
-          <span>${m.email || ''} ${m.research_area ? '· ' + m.research_area : ''}</span>
+          <strong>${esc(m.full_name || m.username)}</strong>
+          <span>${esc(m.email || '')}${m.research_area ? ' · ' + esc(m.research_area) : ''}</span>
         </div>
-        ${m.is_member
-          ? `<span class="member-badge badge-member">✓ Membro</span>
-             <button class="btn btn-sm" style="font-size:.72rem;padding:4px 10px;background:#fee2e2;color:#991b1b;border:none"
-               onclick="unlinkMember(${m.id}, this)">Desvincular</button>`
-          : `<span class="member-badge badge-domain">Domínio</span>
-             <button class="btn btn-sm btn-accent" style="font-size:.72rem;padding:4px 10px"
-               onclick="linkMember(${m.id}, this)">Vincular</button>`
-        }
+        <div class="member-actions">
+          ${m.is_member
+            ? `<span class="badge-member">✓ Membro</span>
+               <button class="btn btn-sm" style="font-size:.72rem;padding:4px 10px;background:#fee2e2;color:#991b1b;border:none"
+                 onclick="unlinkMember(${m.id}, this)">Desvincular</button>`
+            : `<span class="badge-domain">Domínio</span>
+               <button class="btn btn-sm btn-accent" style="font-size:.72rem;padding:4px 10px"
+                 onclick="linkMember(${m.id}, this)">Vincular</button>`
+          }
+        </div>
       </div>
     `).join('');
   } catch (e) {
-    list.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`;
+    list.innerHTML = `<p style="color:var(--danger);padding:20px">${esc(e.message)}</p>`;
   }
 }
 
@@ -101,34 +131,43 @@ async function loadLibrary() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     const items = data.items || [];
+
     if (!items.length) {
-      list.innerHTML = `<div class="empty-state"><div class="icon">📚</div><p>Nenhum item na biblioteca ainda.<br>Adicione dados de pesquisa, protocolos ou artigos pré-publicação.</p></div>`;
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📚</div>
+          <h3>Nenhum item na biblioteca ainda.</h3>
+          <p style="margin-top:8px;font-size:.83rem">Adicione dados de pesquisa, protocolos ou artigos pré-publicação.</p>
+        </div>`;
       return;
     }
+
     list.innerHTML = items.map(item => `
-      <div class="lib-item">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+      <div class="lib-row">
+        <div class="lib-meta-row">
           <div style="flex:1">
             <h4>${esc(item.title)}</h4>
-            ${item.content ? `<p>${esc(item.content).slice(0,200)}${item.content.length>200?'…':''}</p>` : ''}
+            ${item.content ? `<p>${esc(item.content).slice(0,220)}${item.content.length > 220 ? '…' : ''}</p>` : ''}
             <div class="lib-meta">
               <span style="background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600">${esc(item.category)}</span>
-              ${item.is_public ? `<span style="color:#16a34a">🌐 Público</span>` : `<span>🔒 Restrito</span>`}
+              ${item.is_public
+                ? `<span style="color:#16a34a;font-weight:600">🌐 Público</span>`
+                : `<span>🔒 Restrito</span>`}
               <span>${fmtDate(item.created_at)}</span>
             </div>
           </div>
-          <button onclick="deleteLibItem(${item.id}, this)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;padding:4px">🗑️</button>
+          <button onclick="deleteLibItem(${item.id}, this)"
+            style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;padding:4px;flex-shrink:0">🗑️</button>
         </div>
       </div>
     `).join('');
   } catch (e) {
-    list.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`;
+    list.innerHTML = `<p style="color:var(--danger);padding:20px">${esc(e.message)}</p>`;
   }
 }
 
 function showLibModal() {
-  const m = document.getElementById('lib-modal');
-  m.style.display = 'flex';
+  document.getElementById('lib-modal').style.display = 'flex';
 }
 
 async function createLibItem() {
@@ -144,7 +183,7 @@ async function createLibItem() {
   });
   if (res.ok) {
     document.getElementById('lib-modal').style.display = 'none';
-    document.getElementById('lib-title').value = '';
+    document.getElementById('lib-title').value   = '';
     document.getElementById('lib-content').value = '';
     loadLibrary();
   } else {
@@ -168,30 +207,41 @@ async function loadPartnerships() {
     const res  = await fetch('/gl/api/partnerships', { headers: instHeaders() });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    const all = (data.partnerships || []).filter(p => p.institution_id === instData.id || p.inst_id === instData.id);
+    const all = (data.partnerships || []).filter(p =>
+      p.institution_id === instData.id || p.inst_id === instData.id
+    );
+
     if (!all.length) {
-      list.innerHTML = `<div class="empty-state"><div class="icon">📢</div><p>Nenhum anúncio publicado ainda.<br>Crie oportunidades para pesquisadores da plataforma.</p></div>`;
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📢</div>
+          <h3>Nenhum anúncio publicado ainda.</h3>
+          <p style="margin-top:8px;font-size:.83rem">Crie oportunidades para pesquisadores da plataforma.</p>
+        </div>`;
       return;
     }
+
     list.innerHTML = all.map(p => `
-      <div class="partner-card">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="flex:1">
-            <h4>${esc(p.title)}</h4>
-            <p>${esc(p.description).slice(0,200)}${p.description?.length>200?'…':''}</p>
-            <div class="partner-meta">
-              <span class="partner-type">${esc(p.type)}</span>
-              ${p.location ? `<span>📍 ${esc(p.location)}</span>` : ''}
-              ${p.deadline ? `<span>⏰ até ${p.deadline}</span>` : ''}
-              <span style="color:var(--text-muted)">${fmtDate(p.created_at)}</span>
-            </div>
+      <div class="pship-card">
+        <div class="pship-hd">
+          <div class="pship-logo">${esc(instData.logo_initials || instData.short_name?.[0] || 'GL')}</div>
+          <div style="flex:1;min-width:0">
+            <div class="pship-title">${esc(p.title)}</div>
           </div>
-          <button onclick="deletePartnership(${p.id}, this)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;padding:4px">🗑️</button>
+          <button onclick="deletePartnership(${p.id}, this)"
+            style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;padding:4px;flex-shrink:0">🗑️</button>
+        </div>
+        <div class="pship-desc">${esc(p.description).slice(0,220)}${p.description?.length > 220 ? '…' : ''}</div>
+        <div class="pship-foot">
+          <span class="partner-type">${esc(p.type)}</span>
+          ${p.location ? `<span class="tag tag-loc">📍 ${esc(p.location)}</span>` : ''}
+          ${p.deadline ? `<span class="tag tag-date">⏰ até ${p.deadline}</span>` : ''}
+          <span style="font-size:.73rem;color:var(--text-light);margin-left:auto">${fmtDate(p.created_at)}</span>
         </div>
       </div>
     `).join('');
   } catch (e) {
-    list.innerHTML = `<p style="color:var(--danger)">${e.message}</p>`;
+    list.innerHTML = `<p style="color:var(--danger);padding:20px">${esc(e.message)}</p>`;
   }
 }
 
