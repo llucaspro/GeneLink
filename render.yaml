@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: genelink-api
+    runtime: python
+    rootDir: GeneLink/genelink-audit
+    buildCommand: pip install -r requirements.txt
+    startCommand: python artifacts/api-server/app.py
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+    healthCheckPath: /api/healthz
+    autoDeploy: true
+    plan: free
