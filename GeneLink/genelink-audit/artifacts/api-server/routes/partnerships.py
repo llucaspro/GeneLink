@@ -116,6 +116,37 @@ def apply_partnership(pid):
         return jsonify({"error": str(e)}), 500
 
 
+# ── Institution Applications (Candidates) ────────────────────────────────────
+
+@partnerships_bp.route("/inst/applications", methods=["GET"])
+@inst_token_required
+def inst_applications():
+    """Return all applications for partnerships belonging to this institution."""
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT pa.id, pa.message, pa.created_at,
+                      u.full_name, u.username, u.email, u.avatar_initials, u.research_area,
+                      p.title  AS partnership_title,
+                      p.type   AS partnership_type,
+                      p.id     AS partnership_id
+               FROM partnership_applications pa
+               JOIN users u        ON u.id = pa.user_id
+               JOIN partnerships p ON p.id = pa.partnership_id
+               WHERE p.institution_id = %s
+               ORDER BY pa.created_at DESC""",
+            (request.inst_id,),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close(); conn.close()
+        for r in rows:
+            r["created_at"] = str(r.get("created_at") or "")
+        return jsonify({"applications": rows})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Institution Members ──────────────────────────────────────────────────────
 
 @partnerships_bp.route("/inst/members", methods=["GET"])
