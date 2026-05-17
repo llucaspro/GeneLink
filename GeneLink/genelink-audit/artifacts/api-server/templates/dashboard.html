@@ -241,6 +241,9 @@
     <button class="dash-tab" onclick="switchTab('community')">
       💬 Comunidade
     </button>
+    <button class="dash-tab" onclick="switchTab('preprints')">
+      🔬 Pré-publicações
+    </button>
   </div>
 
   <!-- ── Tab: Visão Geral ────────────────────────────────────── -->
@@ -354,6 +357,7 @@
         <div class="quick-actions">
           <a href="/gl/search" class="btn btn-primary btn-block">🔬 Buscar Genes (NCBI)</a>
           <a href="/gl/forum" class="btn btn-outline btn-block">📋 Publicar no Fórum</a>
+          <a href="/gl/preprints/criar" class="btn btn-outline btn-block">✍️ Nova Pré-publicação</a>
           <a href="/gl/parcerias" class="btn btn-ghost btn-block">🤝 Ver Parcerias</a>
           <a href="/gl/chat" class="btn btn-ghost btn-block">💬 Chat da Comunidade</a>
           <a href="/gl/institucional" class="btn btn-ghost btn-block">🏛️ Instituições Verificadas</a>
@@ -361,6 +365,36 @@
           <a href="/gl/profile" class="btn btn-ghost btn-block">👤 Editar Meu Perfil</a>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Pré-publicações ───────────────────────────────── -->
+  <div id="tab-preprints" class="tab-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px">
+      <div>
+        <h2 style="font-size:1.05rem;font-weight:700;color:var(--text)">Pré-publicações da Comunidade</h2>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-top:3px">Hipóteses, artigos preliminares, revisões e experimentos compartilhados por pesquisadores</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <a href="/gl/preprints" class="btn btn-outline btn-sm">Ver todas →</a>
+        <a href="/gl/preprints/criar" class="btn btn-primary btn-sm">+ Nova</a>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+      <button class="filter-chip active" onclick="dashPreprintFilter('')">Todos</button>
+      <button class="filter-chip" onclick="dashPreprintFilter('Hipótese')">🔵 Hipóteses</button>
+      <button class="filter-chip" onclick="dashPreprintFilter('Artigo Preliminar')">🟣 Artigos</button>
+      <button class="filter-chip" onclick="dashPreprintFilter('Revisão')">🟢 Revisões</button>
+      <button class="filter-chip" onclick="dashPreprintFilter('Experimento')">🟠 Experimentos</button>
+    </div>
+
+    <div id="dash-preprints">
+      <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+    </div>
+
+    <div style="margin-top:20px;padding:16px;background:#f0f7ff;border:1px solid #bdd7f5;border-radius:var(--radius);font-size:.84rem;color:#1a3a8f">
+      <strong>🔬 O que são pré-publicações?</strong> São pesquisas compartilhadas antes da revisão formal por pares. Você pode ler, comentar e avaliar o trabalho de outros pesquisadores, acelerando a difusão científica.
     </div>
   </div>
 

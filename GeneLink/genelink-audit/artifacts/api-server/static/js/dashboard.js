@@ -2,7 +2,8 @@
 
 let _activeTab = 'overview';
 let _dashFilter = '';
-let _dashLoaded = { partnerships: false, community: false };
+let _dashPreprintFilter = '';
+let _dashLoaded = { partnerships: false, community: false, preprints: false };
 let _selectedPid = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function switchTab(tab) {
   _activeTab = tab;
   document.querySelectorAll('.dash-tab').forEach((btn, i) => {
-    const tabs = ['overview', 'partnerships', 'community'];
+    const tabs = ['overview', 'partnerships', 'community', 'preprints'];
     btn.classList.toggle('active', tabs[i] === tab);
   });
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -34,6 +35,10 @@ function switchTab(tab) {
   if (tab === 'community' && !_dashLoaded.community) {
     _dashLoaded.community = true;
     loadCommunityPosts();
+  }
+  if (tab === 'preprints' && !_dashLoaded.preprints) {
+    _dashLoaded.preprints = true;
+    loadDashPreprints();
   }
 }
 
@@ -296,3 +301,62 @@ const tagStyles = {
   'tag-loc':  'background:#fef3c7;color:#92400e',
   'tag-date': 'background:#dbeafe;color:#1e40af'
 };
+
+// ── Pré-publicações tab ───────────────────────────────────────────────────────
+
+const PREPRINT_TYPE_STYLES = {
+  'Hipótese':        'background:#e8f0fe;color:#1a56db;border:1px solid #a4c0f4',
+  'Artigo Preliminar':'background:#fce8ff;color:#7c3aed;border:1px solid #d8b4fe',
+  'Revisão':         'background:#e8fdf0;color:#166534;border:1px solid #86efac',
+  'Experimento':     'background:#fff7e8;color:#b45309;border:1px solid #fcd34d',
+};
+
+function dashPreprintFilter(type) {
+  _dashPreprintFilter = type;
+  document.querySelectorAll('#tab-preprints .filter-chip').forEach(c => {
+    const val = c.getAttribute('onclick').match(/'([^']*)'/)?.[1] ?? '';
+    c.classList.toggle('active', val === type);
+  });
+  _dashLoaded.preprints = true;
+  loadDashPreprints();
+}
+
+async function loadDashPreprints() {
+  const el = document.getElementById('dash-preprints');
+  el.innerHTML = `<div class="loading-state"><div class="spinner spinner-dark"></div></div>`;
+  try {
+    let url = '/preprints?status=submitted&limit=10';
+    if (_dashPreprintFilter) url += `&type=${encodeURIComponent(_dashPreprintFilter)}`;
+    const res = await apiFetch(url);
+    const data = await res.json();
+    const list = data.preprints || [];
+    if (!list.length) {
+      el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text-muted)">
+        <div style="font-size:2.5rem;margin-bottom:10px">🔬</div>
+        <p>Nenhuma pré-publicação encontrada.</p>
+        <a href="/gl/preprints/criar" class="btn btn-primary" style="margin-top:14px">Seja o primeiro a publicar</a>
+      </div>`;
+      return;
+    }
+    el.innerHTML = list.map(p => {
+      const typeStyle = PREPRINT_TYPE_STYLES[p.type] || '';
+      const abstract = (p.abstract || '').slice(0, 160) + ((p.abstract || '').length > 160 ? '…' : '');
+      return `
+        <div onclick="window.location='/gl/preprint/${p.id}'" style="cursor:pointer;border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:12px;background:var(--surface);transition:.15s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+            <span style="border-radius:20px;padding:2px 10px;font-size:.72rem;font-weight:700;${typeStyle}">${escHtml(p.type)}</span>
+            <span style="font-size:.75rem;color:var(--text-muted)">por <strong>${escHtml(p.author_username)}</strong></span>
+            ${p.author_institution ? `<span style="font-size:.73rem;color:var(--text-muted)">· ${escHtml(p.author_institution)}</span>` : ''}
+          </div>
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:6px;line-height:1.4">${escHtml(p.title)}</div>
+          <div style="font-size:.84rem;color:var(--text-muted);line-height:1.6;margin-bottom:10px">${escHtml(abstract)}</div>
+          <div style="display:flex;gap:14px;font-size:.76rem;color:var(--text-muted)">
+            <span>💬 ${p.review_count || 0} revisão(ões)</span>
+            <span>${timeAgo(p.created_at)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--danger);padding:20px">${e.message}</p>`;
+  }
+}
