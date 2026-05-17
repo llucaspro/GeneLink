@@ -267,9 +267,15 @@ def healthz():
 init_db()
 
 
-# ── Entrypoint (dev only — production uses gunicorn) ─────────────────────────
+# ── Entrypoint ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 10000))
     print(f"[GeneLink] Starting on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    try:
+        from waitress import serve
+        print("[GeneLink] Using waitress (production server)")
+        serve(app, host="0.0.0.0", port=port, threads=4)
+    except ImportError:
+        print("[GeneLink] waitress not found, falling back to Flask dev server")
+        app.run(host="0.0.0.0", port=port, debug=False)
