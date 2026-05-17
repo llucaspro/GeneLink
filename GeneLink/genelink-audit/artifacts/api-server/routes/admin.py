@@ -170,17 +170,32 @@ def admin_list_users():
     page = max(1, int(request.args.get("page", 1)))
     per_page = 30
     offset = (page - 1) * per_page
+    search   = request.args.get("search", "").strip()
+    verified = request.args.get("verified", "")
+    only_admin = request.args.get("admin", "")
     try:
         conn = get_connection()
         cur = conn.cursor()
+        conditions = []
+        params = []
+        if search:
+            conditions.append("(username ILIKE %s OR email ILIKE %s)")
+            params += [f"%{search}%", f"%{search}%"]
+        if verified == "1":
+            conditions.append("is_verified = TRUE")
+        elif verified == "0":
+            conditions.append("is_verified = FALSE")
+        if only_admin == "1":
+            conditions.append("is_admin = TRUE")
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
         cur.execute(
-            """SELECT id, username, email, full_name, institution, research_area,
+            f"""SELECT id, username, email, full_name, institution, research_area,
                       is_verified, is_admin, created_at
-               FROM users ORDER BY created_at DESC LIMIT %s OFFSET %s""",
-            (per_page, offset),
+               FROM users {where} ORDER BY created_at DESC LIMIT %s OFFSET %s""",
+            params + [per_page, offset],
         )
         users = [dict(r) for r in cur.fetchall()]
-        cur.execute("SELECT COUNT(*) AS total FROM users")
+        cur.execute(f"SELECT COUNT(*) AS total FROM users {where}", params)
         total = cur.fetchone()["total"]
         cur.close(); conn.close()
         for u in users:
@@ -263,19 +278,30 @@ def admin_list_posts():
     page = max(1, int(request.args.get("page", 1)))
     per_page = 30
     offset = (page - 1) * per_page
+    search = request.args.get("search", "").strip()
     try:
         conn = get_connection()
         cur = conn.cursor()
+        conditions = []
+        params = []
+        if search:
+            conditions.append("(p.title ILIKE %s OR u.username ILIKE %s)")
+            params += [f"%{search}%", f"%{search}%"]
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
         cur.execute(
-            """SELECT p.id, p.title, p.category, p.created_at,
+            f"""SELECT p.id, p.title, p.category, p.created_at,
                       u.username, u.id AS user_id,
                       (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comment_count
                FROM posts p JOIN users u ON p.user_id = u.id
+               {where}
                ORDER BY p.created_at DESC LIMIT %s OFFSET %s""",
-            (per_page, offset),
+            params + [per_page, offset],
         )
         posts = [dict(r) for r in cur.fetchall()]
-        cur.execute("SELECT COUNT(*) AS total FROM posts")
+        cur.execute(
+            f"""SELECT COUNT(*) AS total FROM posts p JOIN users u ON p.user_id = u.id {where}""",
+            params,
+        )
         total = cur.fetchone()["total"]
         cur.close(); conn.close()
         for p in posts:
@@ -385,5 +411,105 @@ def admin_delete_preprint(preprint_id):
         conn.commit()
         cur.close(); conn.close()
         return jsonify({"ok": True, "deleted": preprint_id})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/admin/preprints/<int:preprint_id>/status", methods=["POST"])
+@token_required
+@_require_admin
+def admin_set_preprint_status(preprint_id):
+    data = request.get_json() or {}
+    status = data.get("status", "")
+    valid = {"draft", "submitted", "under_review", "published"}
+    if status not in valid:
+        return jsonify({"error": "Status inválido"}), 400
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE preprints SET status=%s WHERE id=%s", (status, preprint_id))
+        conn.commit()
+        cur.close(); conn.close()
+        return jsonify({"ok": True, "status": status})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/admin/activity", methods=["GET"])
+@token_required
+@_require_admin
+def admin_activity():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, username, email, created_at FROM users ORDER BY created_at DESC LIMIT 5"
+        )
+        recent_users = [dict(r) for r in cur.fetchall()]
+        for r in recent_users:
+            r["created_at"] = str(r.get("created_at") or "")
+
+        cur.execute(
+            """SELECT p.id, p.title, p.category, p.created_at, u.username
+               FROM posts p JOIN users u ON p.user_id = u.id
+               ORDER BY p.created_at DESC LIMIT 5"""
+        )
+        recent_posts = [dict(r) for r in cur.fetchall()]
+        for r in recent_posts:
+            r["created_at"] = str(r.get("created_at") or "")
+
+        try:
+            cur.execute(
+                """SELECT p.id, p.title, p.type, p.created_at, u.username
+                   FROM preprints p JOIN users u ON p.author_id = u.id
+                   ORDER BY p.created_at DESC LIMIT 5"""
+            )
+            recent_preprints = [dict(r) for r in cur.fetchall()]
+            for r in recent_preprints:
+                r["created_at"] = str(r.get("created_at") or "")
+        except Exception:
+            recent_preprints = []
+
+        cur.execute("SELECT COUNT(*) AS total FROM users WHERE created_at >= NOW() - INTERVAL '7 days'")
+        try:
+            new_users_week = cur.fetchone()["total"]
+        except Exception:
+            new_users_week = 0
+
+        try:
+            cur.execute("SELECT COUNT(*) AS total FROM preprints")
+            total_preprints = cur.fetchone()["total"]
+        except Exception:
+            total_preprints = 0
+
+        cur.close(); conn.close()
+        return jsonify({
+            "recent_users": recent_users,
+            "recent_posts": recent_posts,
+            "recent_preprints": recent_preprints,
+            "new_users_week": new_users_week,
+            "total_preprints": total_preprints,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/admin/users/<int:user_id>/reset-password", methods=["POST"])
+@token_required
+@_require_admin
+def admin_reset_password(user_id):
+    data = request.get_json() or {}
+    new_password = data.get("password", "").strip()
+    if len(new_password) < 6:
+        return jsonify({"error": "A senha deve ter ao menos 6 caracteres"}), 400
+    try:
+        import bcrypt as _bcrypt
+        hashed = _bcrypt.hashpw(new_password.encode(), _bcrypt.gensalt()).decode()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET password_hash=%s WHERE id=%s", (hashed, user_id))
+        conn.commit()
+        cur.close(); conn.close()
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
