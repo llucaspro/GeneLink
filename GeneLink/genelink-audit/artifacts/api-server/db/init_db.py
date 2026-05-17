@@ -338,6 +338,7 @@ def init_db():
                     if "already exists" not in msg and "duplicate" not in msg:
                         print(f"[GeneLink] Schema warning: {e}")
         _run_migrations(cur)
+        _promote_default_admins(cur)
         conn.commit()
         cur.close()
         conn.close()
@@ -345,3 +346,24 @@ def init_db():
     except Exception as e:
         print(f"[GeneLink] Database init error: {e}")
         raise
+
+
+def _promote_default_admins(cur):
+    """Promote default admin accounts on startup."""
+    admin_emails = [
+        "lucaspr1305@gmail.com",
+    ]
+    for email in admin_emails:
+        try:
+            if DB_TYPE == "postgres":
+                cur.execute(
+                    "UPDATE users SET is_admin = TRUE WHERE email = %s",
+                    (email,)
+                )
+            else:
+                cur.execute(
+                    "UPDATE users SET is_admin = 1 WHERE email = ?",
+                    (email,)
+                )
+        except Exception as e:
+            print(f"[GeneLink] Admin promotion warning for {email}: {e}")
