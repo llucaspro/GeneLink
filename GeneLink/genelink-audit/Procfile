@@ -1,1 +1,1 @@
-web: python artifacts/api-server/app.py
+web: gunicorn --bind 0.0.0.0:$PORT --workers 1 --chdir artifacts/api-server app:app

@@ -3,7 +3,7 @@ services:
     name: genelink-api
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python artifacts/api-server/app.py
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --chdir artifacts/api-server app:app
     envVars:
       - key: DATABASE_URL
         sync: false

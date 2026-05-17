@@ -257,10 +257,14 @@ def healthz():
     return jsonify({"status": "ok", "service": "GeneLink API"})
 
 
-# ── Entrypoint ──────────────────────────────────────────────────────────────
+# ── DB init (runs on every worker startup, safe with IF NOT EXISTS) ──────────
+
+init_db()
+
+
+# ── Entrypoint (dev only — production uses gunicorn) ─────────────────────────
 
 if __name__ == "__main__":
-    init_db()
     port = int(os.environ.get("PORT", 8080))
     print(f"[GeneLink] Starting on port {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
