@@ -73,6 +73,8 @@ function timeAgo(ts) {
   return `${d}d atrás`;
 }
 
+// ── Researcher Navbar ─────────────────────────────────────────────────────────
+
 function renderNavbar(activePage) {
   const user = getUser();
   const initials = user ? (user.avatar_initials || user.username.slice(0, 2).toUpperCase()) : "";
@@ -166,4 +168,82 @@ async function logout() {
 function injectNavbar(activePage) {
   const nav = document.getElementById("navbar-placeholder");
   if (nav) nav.outerHTML = renderNavbar(activePage);
+}
+
+// ── Institutional Navbar ──────────────────────────────────────────────────────
+
+function renderInstNavbar(activePage) {
+  const inst = JSON.parse(localStorage.getItem('gl_inst') || 'null');
+  const initials = inst
+    ? (inst.logo_initials || inst.short_name?.[0] || inst.name?.[0] || 'GL')
+    : 'GL';
+  const name = inst ? inst.name : 'Instituição';
+
+  const pages = [
+    { href: BASE + "/inst-dashboard",  label: "Painel",              icon: "🏠" },
+    { href: BASE + "/inst-candidates", label: "Candidatos",          icon: "👥" },
+    { href: BASE + "/parcerias",       label: "Mural de Parcerias",  icon: "📢" },
+  ];
+
+  const drawerItems = pages.map(p =>
+    `<a href="${p.href}" class="gl-drawer-item${activePage === p.href ? " active" : ""}">
+      <span class="gl-drawer-icon">${p.icon}</span>
+      <span>${p.label}</span>
+    </a>`
+  ).join("");
+
+  const navLinks = pages.map(p =>
+    `<a href="${p.href}" class="${activePage === p.href ? "active" : ""}">${p.label}</a>`
+  ).join("");
+
+  return `
+    <div class="gl-drawer-overlay" id="gl-drawer-overlay" onclick="_glCloseDrawer()"></div>
+    <div class="gl-drawer" id="gl-drawer">
+      <div class="gl-drawer-header">
+        <div class="gl-drawer-brand">
+          <div class="logo-icon" style="width:32px;height:32px;font-size:.9rem">GL</div>
+          <span>GeneLink</span>
+        </div>
+        <button class="gl-drawer-close" onclick="_glCloseDrawer()" aria-label="Fechar menu">✕</button>
+      </div>
+      ${inst ? `<div class="gl-drawer-user">
+        <div class="avatar" style="width:38px;height:38px;font-size:.88rem;flex-shrink:0;background:#1a9b82">${initials}</div>
+        <div>
+          <div style="font-weight:700;font-size:.9rem">${name}</div>
+          <div style="font-size:.75rem;opacity:.65">Conta Institucional · ✅ Verificada</div>
+        </div>
+      </div>` : ""}
+      <nav class="gl-drawer-nav">${drawerItems}</nav>
+      <div class="gl-drawer-footer">
+        <button class="gl-drawer-signout" onclick="instLogoutNav()">↩ Sair da conta</button>
+      </div>
+    </div>
+
+    <nav class="navbar">
+      <button class="gl-menu-btn" onclick="_glOpenDrawer()" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="navbar-brand" onclick="window.location='${BASE}/inst-dashboard'" style="cursor:pointer">
+        <div class="logo-icon">GL</div>
+        GeneLink
+      </div>
+      <div class="navbar-nav">${navLinks}</div>
+      <div class="navbar-right">
+        <span style="color:rgba(255,255,255,.82);font-size:.85rem">${name}</span>
+        <div class="avatar" style="background:#1a9b82;border-color:rgba(255,255,255,.3)" title="${name}">${initials}</div>
+        <button class="btn btn-ghost btn-sm" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.82);" onclick="instLogoutNav()">Sair</button>
+      </div>
+    </nav>`;
+}
+
+function injectInstNavbar(activePage) {
+  const nav = document.getElementById("navbar-placeholder");
+  if (nav) nav.outerHTML = renderInstNavbar(activePage);
+}
+
+function instLogoutNav() {
+  fetch('/gl/api/institutions/logout', { method: 'POST' }).catch(() => {});
+  localStorage.removeItem('gl_inst_token');
+  localStorage.removeItem('gl_inst');
+  window.location.href = BASE + '/login#instituicao';
 }
