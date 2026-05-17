@@ -2,8 +2,6 @@ services:
   - type: web
     name: genelink-api
     runtime: python
-    rootDir: GeneLink/genelink-audit
-    buildCommand: pip install -r requirements.txt
     startCommand: python artifacts/api-server/app.py
     envVars:
       - key: DATABASE_URL
