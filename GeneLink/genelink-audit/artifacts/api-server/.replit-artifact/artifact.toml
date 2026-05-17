@@ -10,7 +10,7 @@ name = "GeneLink"
 paths = ["/gl"]
 
 [services.development]
-run = "cd /home/runner/workspace/genelink-audit/artifacts/api-server && pip install -q -r requirements.txt && PORT=8082 python3 app.py"
+run = "cd /home/runner/workspace/GeneLink/genelink-audit/artifacts/api-server && pip install -q -r requirements.txt && PORT=8082 python3 app.py"
 
 [services.production]
 
@@ -18,7 +18,7 @@ run = "cd /home/runner/workspace/genelink-audit/artifacts/api-server && pip inst
 args = ["echo", "no-build-needed"]
 
 [services.production.run]
-args = ["python3", "/home/runner/workspace/genelink-audit/artifacts/api-server/app.py"]
+args = ["python3", "/home/runner/workspace/GeneLink/genelink-audit/artifacts/api-server/app.py"]
 
 [services.production.run.env]
 PORT = "8082"
