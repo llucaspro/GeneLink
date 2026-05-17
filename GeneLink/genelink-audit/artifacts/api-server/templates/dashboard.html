@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+/* ── Hero banner ─────────────────────────────────────────── */
+.dash-hero {
+  background: linear-gradient(135deg, #071e33 0%, #1b4f72 55%, #0b3356 100%);
+  border-radius: 18px;
+  padding: 36px 40px;
+  color: #fff;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.dash-hero::before {
+  content: '';
+  position: absolute;
+  top: -70px; right: -50px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(34,196,163,.22) 0%, transparent 68%);
+  pointer-events: none;
+}
+.dash-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -90px; left: 35%;
+  width: 340px; height: 340px;
+  background: radial-gradient(circle, rgba(46,134,193,.14) 0%, transparent 68%);
+  pointer-events: none;
+}
+.dash-hero-inner { position: relative; z-index: 1; }
+.dash-hero-label {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: rgba(255,255,255,.5); margin-bottom: 10px;
+}
+.dash-hero h1 {
+  font-size: 2rem; font-weight: 800; color: #fff; line-height: 1.2;
+  margin-bottom: 6px;
+}
+.dash-hero h1 em { color: #6dd5fa; font-style: normal; }
+.dash-hero-sub { font-size: .88rem; color: rgba(255,255,255,.58); margin-bottom: 26px; }
+.dash-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+.dash-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.13);
+  border-radius: 30px; padding: 7px 16px;
+  font-size: .8rem; font-weight: 600; color: rgba(255,255,255,.88);
+  backdrop-filter: blur(6px);
+}
+.dash-pill strong { color: #fff; }
+
+/* ── Tab bar ──────────────────────────────────────────────── */
+.dash-tabs {
+  display: flex; border-bottom: 2px solid var(--border);
+  margin-bottom: 28px; overflow-x: auto; gap: 0;
+  scrollbar-width: none;
+}
+.dash-tabs::-webkit-scrollbar { display: none; }
+.dash-tab {
+  padding: 11px 22px; font-size: .875rem; font-weight: 600;
+  color: var(--text-muted); border: none; background: none;
+  cursor: pointer; border-bottom: 3px solid transparent;
+  margin-bottom: -2px; white-space: nowrap;
+  transition: color .15s, border-color .15s;
+  display: flex; align-items: center; gap: 7px;
+}
+.dash-tab:hover { color: var(--primary); }
+.dash-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-pip {
+  background: var(--primary); color: #fff;
+  border-radius: 20px; padding: 1px 7px; font-size: .66rem; font-weight: 700;
+}
+
+/* ── Tab panels ───────────────────────────────────────────── */
+.tab-panel { display: none; animation: fadeIn .18s ease; }
+.tab-panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ── Metric row ───────────────────────────────────────────── */
+.metric-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 22px;
+}
+.metric-card {
+  background: #fff; border: 1px solid #e2eaf4; border-radius: 14px;
+  padding: 20px 22px; display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 1px 5px rgba(27,79,114,.06); transition: box-shadow .2s;
+}
+.metric-card:hover { box-shadow: 0 4px 18px rgba(27,79,114,.1); }
+.m-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 1.3rem; flex-shrink: 0;
+}
+.m-val { font-size: 1.5rem; font-weight: 800; color: var(--primary); line-height: 1; }
+.m-lbl { font-size: .76rem; color: var(--text-muted); font-weight: 500; margin-top: 3px; }
+
+/* ── Luxury card ──────────────────────────────────────────── */
+.lux-card {
+  background: #fff; border: 1px solid #e2eaf4; border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(27,79,114,.06);
+  overflow: hidden; transition: box-shadow .2s;
+}
+.lux-card:hover { box-shadow: 0 6px 24px rgba(27,79,114,.1); }
+.lux-card-hd {
+  padding: 17px 22px 13px; border-bottom: 1px solid #f0f5f9;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.lux-card-hd h3 {
+  font-size: .92rem; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 9px;
+}
+.hd-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: grid; place-items: center; font-size: .9rem;
+}
+.lux-card-body { padding: 4px 0; }
+
+/* ── History rows ────────────────────────────────────────── */
+.hist-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 22px; border-bottom: 1px solid #f3f6fa;
+  transition: background .12s;
+}
+.hist-row:last-child { border-bottom: none; }
+.hist-row:hover { background: #f8fbfd; }
+.hist-gene { font-weight: 700; font-family: var(--mono); color: var(--primary); font-size: .87rem; }
+.hist-meta { font-size: .76rem; color: var(--text-muted); margin-top: 1px; }
+
+/* ── Post rows ────────────────────────────────────────────── */
+.post-row {
+  display: flex; align-items: flex-start; gap: 13px;
+  padding: 13px 22px; border-bottom: 1px solid #f3f6fa;
+  cursor: pointer; transition: background .12s;
+}
+.post-row:last-child { border-bottom: none; }
+.post-row:hover { background: #f8fbfd; }
+.post-cat-dot {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: grid; place-items: center; font-size: 1rem;
+  flex-shrink: 0; margin-top: 1px;
+}
+.post-row-title { font-weight: 600; font-size: .88rem; color: var(--text); margin-bottom: 4px; }
+.post-row-meta {
+  font-size: .76rem; color: var(--text-muted);
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+
+/* ── Partnership cards ────────────────────────────────────── */
+.pship-card {
+  border: 1px solid #e5edf5; border-radius: 14px; padding: 20px;
+  margin-bottom: 14px; background: #fff;
+  transition: box-shadow .18s, border-color .18s;
+}
+.pship-card:hover { box-shadow: 0 5px 20px rgba(27,79,114,.1); border-color: var(--primary-light); }
+.pship-hd { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; }
+.pship-logo {
+  width: 46px; height: 46px;
+  background: linear-gradient(135deg, #1b4f72, #2e86c1);
+  color: #fff; border-radius: 11px; display: grid; place-items: center;
+  font-weight: 800; font-size: .85rem; flex-shrink: 0;
+}
+.pship-title { font-size: .95rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.pship-inst { font-size: .79rem; color: var(--primary-light); font-weight: 600; }
+.pship-desc { font-size: .84rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 12px; }
+.pship-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Filter chips (shared with parcerias.html) */
+.filter-chip {
+  padding: 5px 15px; border: 1px solid var(--border);
+  border-radius: 20px; font-size: .79rem; font-weight: 600;
+  cursor: pointer; background: var(--surface); color: var(--text-muted);
+  transition: all .14s;
+}
+.filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* apply-btn */
+.apply-btn {
+  margin-left: auto; background: var(--primary); color: #fff;
+  padding: 6px 16px; border-radius: var(--radius); font-size: .8rem;
+  font-weight: 700; border: none; cursor: pointer; transition: opacity .15s;
+  text-decoration: none; display: inline-block;
+}
+.apply-btn:hover { opacity: .85; color: #fff; }
+
+/* Action list */
+.quick-actions { display: flex; flex-direction: column; gap: 10px; padding: 18px; }
+
+/* NCBI notice */
+.ncbi-notice {
+  margin-top: 20px; padding: 13px 18px;
+  background: linear-gradient(90deg, #e8f4fd, #e2f5f1);
+  border: 1px solid #c5dce8; border-radius: 12px;
+  font-size: .82rem; color: var(--text-muted);
+  display: flex; align-items: center; gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .dash-hero { padding: 24px 20px; }
+  .dash-hero h1 { font-size: 1.5rem; }
+  .metric-row { grid-template-columns: 1fr 1fr; }
+  .dash-tab { padding: 10px 14px; font-size: .8rem; }
+}
+@media (max-width: 480px) {
+  .metric-row { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content" style="padding-top:24px">
+
+  <!-- ── Hero ───────────────────────────────────────────────── -->
+  <div class="dash-hero">
+    <div class="dash-hero-inner">
+      <div class="dash-hero-label">Painel do Pesquisador · GeneLink</div>
+      <h1>Bem-vindo(a), <em id="welcome-name">Pesquisador(a)</em></h1>
+      <div class="dash-hero-sub">Sua central de pesquisa genética colaborativa</div>
+      <div class="dash-pills">
+        <div class="dash-pill">🏛️ <strong id="hero-institution">Carregando…</strong></div>
+        <div class="dash-pill">🔬 <strong id="hero-area">—</strong></div>
+        <div class="dash-pill">📅 Membro desde <strong id="hero-joined" style="margin-left:4px">—</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────── -->
+  <div class="dash-tabs">
+    <button class="dash-tab active" onclick="switchTab('overview')">
+      📊 Visão Geral
+    </button>
+    <button class="dash-tab" onclick="switchTab('partnerships')">
+      🤝 Parcerias
+      <span class="tab-pip" id="pship-pip" style="display:none"></span>
+    </button>
+    <button class="dash-tab" onclick="switchTab('community')">
+      💬 Comunidade
+    </button>
+  </div>
+
+  <!-- ── Tab: Visão Geral ────────────────────────────────────── -->
+  <div id="tab-overview" class="tab-panel active">
+
+    <div class="metric-row">
+      <div class="metric-card">
+        <div class="m-icon" style="background:#e8f1f8">🔍</div>
+        <div>
+          <div class="m-val" id="m-searches">—</div>
+          <div class="m-lbl">Buscas realizadas</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="m-icon" style="background:#e2f5f1">👤</div>
+        <div>
+          <div class="m-val" id="m-account" style="font-size:1.1rem">@—</div>
+          <div class="m-lbl">Sua conta</div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="m-icon" style="background:#f0f4ff">🏅</div>
+        <div>
+          <div class="m-val" id="m-badge" style="font-size:.95rem">—</div>
+          <div class="m-lbl">Área de Pesquisa</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="gap:20px">
+      <div class="lux-card">
+        <div class="lux-card-hd">
+          <h3>
+            <div class="hd-icon" style="background:#e8f1f8">🔬</div>
+            Histórico de Buscas
+          </h3>
+          <a href="/gl/search" class="btn btn-ghost btn-sm">Nova busca →</a>
+        </div>
+        <div class="lux-card-body" id="recent-searches">
+          <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+        </div>
+      </div>
+
+      <div class="lux-card">
+        <div class="lux-card-hd">
+          <h3>
+            <div class="hd-icon" style="background:#fef3c7">📋</div>
+            Publicações Recentes
+          </h3>
+          <a href="/gl/forum" class="btn btn-ghost btn-sm">Ver fórum →</a>
+        </div>
+        <div class="lux-card-body" id="recent-posts">
+          <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ncbi-notice">
+      <span style="font-size:1.2rem">🧬</span>
+      <span>Todos os resultados são recuperados em tempo real do <strong style="color:var(--primary)">banco de dados NCBI Gene</strong>. Nenhum dado é simulado.</span>
+    </div>
+  </div>
+
+  <!-- ── Tab: Parcerias ─────────────────────────────────────── -->
+  <div id="tab-partnerships" class="tab-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px">
+      <div>
+        <h2 style="font-size:1.05rem;font-weight:700;color:var(--text)">Parcerias & Oportunidades</h2>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-top:3px">Vagas, editais e projetos publicados por instituições verificadas</p>
+      </div>
+      <a href="/gl/parcerias" class="btn btn-outline btn-sm">Página completa →</a>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+      <button class="filter-chip active" onclick="dashFilter('')">Todos</button>
+      <button class="filter-chip" onclick="dashFilter('Vaga de Pesquisa')">Vagas</button>
+      <button class="filter-chip" onclick="dashFilter('Edital')">Editais</button>
+      <button class="filter-chip" onclick="dashFilter('Bolsa')">Bolsas</button>
+      <button class="filter-chip" onclick="dashFilter('Projeto Colaborativo')">Projetos</button>
+      <button class="filter-chip" onclick="dashFilter('Estágio')">Estágios</button>
+    </div>
+
+    <div id="dash-pships">
+      <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+    </div>
+  </div>
+
+  <!-- ── Tab: Comunidade ────────────────────────────────────── -->
+  <div id="tab-community" class="tab-panel">
+    <div class="grid-2" style="gap:20px">
+      <div class="lux-card">
+        <div class="lux-card-hd">
+          <h3>
+            <div class="hd-icon" style="background:#fce4ec">💬</div>
+            Discussões do Fórum
+          </h3>
+          <a href="/gl/forum" class="btn btn-ghost btn-sm">Abrir →</a>
+        </div>
+        <div class="lux-card-body" id="comm-posts">
+          <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+        </div>
+      </div>
+
+      <div class="lux-card">
+        <div class="lux-card-hd">
+          <h3>
+            <div class="hd-icon" style="background:#e8f5e9">🚀</div>
+            Acesso Rápido
+          </h3>
+        </div>
+        <div class="quick-actions">
+          <a href="/gl/search" class="btn btn-primary btn-block">🔬 Buscar Genes (NCBI)</a>
+          <a href="/gl/forum" class="btn btn-outline btn-block">📋 Publicar no Fórum</a>
+          <a href="/gl/parcerias" class="btn btn-ghost btn-block">🤝 Ver Parcerias</a>
+          <a href="/gl/chat" class="btn btn-ghost btn-block">💬 Chat da Comunidade</a>
+          <a href="/gl/institucional" class="btn btn-ghost btn-block">🏛️ Instituições Verificadas</a>
+          <a href="/gl/recursos" class="btn btn-ghost btn-block">📚 Recursos Científicos</a>
+          <a href="/gl/profile" class="btn btn-ghost btn-block">👤 Editar Meu Perfil</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Apply modal -->
+<div id="apply-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:30px;width:100%;max-width:480px;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,.22)">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px" id="apply-title">Candidatar-se</h3>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:16px" id="apply-inst-name"></p>
+    <div class="form-group">
+      <label class="form-label">Mensagem (opcional)</label>
+      <textarea id="apply-message" class="form-control" rows="4"
+        placeholder="Apresente-se brevemente e mencione sua área de pesquisa…"></textarea>
+    </div>
+    <div id="apply-alert" class="alert"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary btn-block" id="apply-confirm-btn" onclick="confirmApply()">Enviar Candidatura</button>
+      <button class="btn btn-ghost btn-block" onclick="closeApplyModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/dashboard.js"></script>
+</body>
+</html>

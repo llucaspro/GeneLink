@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "jxG6uJSxjU3cYb8-y6fcU"
+uri = "file://GeneLink.zip"
+type = "unspecified"
+title = "GeneLink — Código Fonte Completo"

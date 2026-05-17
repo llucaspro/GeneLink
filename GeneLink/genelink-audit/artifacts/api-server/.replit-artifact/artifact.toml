@@ -1,0 +1,27 @@
+kind = "api"
+previewPath = "/gl"
+title = "GeneLink"
+version = "1.0.0"
+id = "3B4_FFSkEVBkAeYMFRJ2e"
+
+[[services]]
+localPort = 8082
+name = "GeneLink"
+paths = ["/gl"]
+
+[services.development]
+run = "cd /home/runner/workspace/genelink-audit/artifacts/api-server && pip install -q -r requirements.txt && PORT=8082 python3 app.py"
+
+[services.production]
+
+[services.production.build]
+args = ["echo", "no-build-needed"]
+
+[services.production.run]
+args = ["python3", "/home/runner/workspace/genelink-audit/artifacts/api-server/app.py"]
+
+[services.production.run.env]
+PORT = "8082"
+
+[services.production.health.startup]
+path = "/api/healthz"

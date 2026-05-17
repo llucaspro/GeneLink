@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parcerias & Oportunidades · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.page-hero {
+  background: linear-gradient(135deg,#1e3a5f,#5b21b6);
+  color: #fff; padding: 40px 32px; border-radius: var(--radius-lg);
+  margin-bottom: 28px; text-align: center;
+}
+.page-hero h1 { font-size: 1.7rem; font-weight: 800; margin-bottom: 8px; }
+.page-hero p  { color: rgba(255,255,255,.8); font-size: .95rem; }
+
+.filter-bar {
+  display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 6px 16px; border: 1px solid var(--border); border-radius: 20px;
+  font-size: .8rem; font-weight: 600; cursor: pointer; background: var(--surface);
+  color: var(--text-muted); transition: all .15s;
+}
+.filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.partner-card {
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 20px; margin-bottom: 16px; background: var(--surface);
+  transition: box-shadow .15s, border-color .15s;
+}
+.partner-card:hover { box-shadow: var(--shadow-md); border-color: var(--primary-light); }
+.partner-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+.inst-logo {
+  width: 44px; height: 44px; background: var(--primary); color: #fff;
+  border-radius: 10px; display: grid; place-items: center;
+  font-weight: 800; font-size: .85rem; flex-shrink: 0;
+}
+.partner-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.partner-inst  { font-size: .8rem; color: var(--primary); font-weight: 600; }
+.partner-body p { font-size: .875rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px; }
+.partner-footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tag {
+  padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600;
+}
+.tag-type  { background: #ede9fe; color: #5b21b6; }
+.tag-loc   { background: #fef3c7; color: #92400e; }
+.tag-date  { background: #dbeafe; color: #1e40af; }
+.tag-verified { background: #dcfce7; color: #166534; }
+.apply-btn {
+  margin-left: auto; background: var(--primary); color: #fff;
+  padding: 7px 18px; border-radius: var(--radius); font-size: .82rem;
+  font-weight: 700; border: none; cursor: pointer; transition: opacity .15s;
+}
+.apply-btn:hover { opacity: .85; }
+.apply-btn:disabled { background: var(--surface-alt); color: var(--text-muted); cursor: default; }
+
+.empty-state {
+  text-align: center; padding: 60px 20px; color: var(--text-muted);
+}
+.empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+/* Apply modal */
+#apply-modal {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+#apply-modal.open { display: flex; }
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<main class="container" style="max-width:860px;padding:24px 16px 60px">
+
+  <div class="page-hero">
+    <div style="font-size:2.5rem;margin-bottom:12px">🤝</div>
+    <h1>Parcerias & Oportunidades</h1>
+    <p>Vagas de pesquisa, editais e projetos colaborativos publicados por instituições verificadas</p>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+    <div class="filter-bar" id="filter-bar">
+      <button class="filter-chip active" onclick="setFilter('')">Todos</button>
+      <button class="filter-chip" onclick="setFilter('Vaga de Pesquisa')">Vagas</button>
+      <button class="filter-chip" onclick="setFilter('Edital')">Editais</button>
+      <button class="filter-chip" onclick="setFilter('Bolsa')">Bolsas</button>
+      <button class="filter-chip" onclick="setFilter('Projeto Colaborativo')">Projetos</button>
+      <button class="filter-chip" onclick="setFilter('Estágio')">Estágios</button>
+    </div>
+    <span id="results-count" style="font-size:.82rem;color:var(--text-muted)"></span>
+  </div>
+
+  <div id="partnerships-list">
+    <p style="color:var(--text-muted);text-align:center;padding:40px">Carregando…</p>
+  </div>
+  <div id="load-more-wrap" style="text-align:center;margin-top:16px;display:none">
+    <button class="btn" onclick="loadMore()">Carregar mais</button>
+  </div>
+</main>
+
+<!-- Apply modal -->
+<div id="apply-modal">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);padding:28px;width:100%;max-width:480px;margin:16px">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px" id="apply-title">Candidatar-se</h3>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:16px" id="apply-inst-name"></p>
+    <div class="form-group">
+      <label class="form-label">Mensagem (opcional)</label>
+      <textarea id="apply-message" class="form-control" rows="4" style="resize:vertical"
+        placeholder="Apresente-se brevemente, mencione sua área de pesquisa e por que se interessa nesta oportunidade…"></textarea>
+    </div>
+    <div id="apply-alert" class="alert"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary btn-block" id="apply-confirm-btn" onclick="confirmApply()">Enviar Candidatura</button>
+      <button class="btn btn-block" style="background:var(--surface-alt)" onclick="closeApplyModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/parcerias.js"></script>
+</body>
+</html>

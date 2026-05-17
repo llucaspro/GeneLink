@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instituições · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.inst-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; }
+.inst-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); transition:box-shadow .2s,border-color .2s; display:flex; flex-direction:column; }
+.inst-card:hover { box-shadow:var(--shadow-md); border-color:var(--primary-light); }
+.inst-logo { width:52px; height:52px; border-radius:10px; background:linear-gradient(135deg,var(--primary),var(--primary-light)); color:#fff; display:grid; place-items:center; font-size:1rem; font-weight:800; margin-bottom:14px; flex-shrink:0; }
+.inst-name { font-size:1rem; font-weight:700; color:var(--primary); margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+.inst-meta { font-size:.8rem; color:var(--text-muted); margin-bottom:10px; }
+.inst-desc { font-size:.85rem; color:var(--text); line-height:1.6; flex:1; }
+.inst-footer { margin-top:14px; display:flex; align-items:center; justify-content:space-between; }
+.verified-seal { display:inline-flex; align-items:center; gap:4px; font-size:.75rem; font-weight:700; color:#1565c0; background:#e3f2fd; border:1px solid #90caf9; border-radius:20px; padding:3px 10px; }
+.verified-seal svg { width:12px; height:12px; }
+.filter-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:24px; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--surface); border-radius:var(--radius-lg); padding:28px 32px; max-width:520px; width:90vw; box-shadow:var(--shadow-md); max-height:90vh; overflow-y:auto; }
+.modal h2 { margin-bottom:20px; color:var(--primary); }
+.type-badge { font-size:.72rem; font-weight:600; color:var(--text-muted); background:var(--surface-alt); border:1px solid var(--border); border-radius:20px; padding:2px 8px; }
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <h1>Instituições Científicas</h1>
+      <p>Universidades, centros de pesquisa e organizações parceiras do GeneLink.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal()">+ Cadastrar Instituição</button>
+  </div>
+
+  <div class="filter-bar">
+    <input type="text" id="search-input" class="form-control" style="max-width:320px" placeholder="Buscar instituição…" oninput="onSearch()">
+    <label style="display:flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer">
+      <input type="checkbox" id="verified-filter" onchange="onSearch()">
+      Apenas verificadas
+    </label>
+    <span id="total-label" style="font-size:.82rem;color:var(--text-muted);margin-left:auto"></span>
+  </div>
+
+  <div id="inst-list" class="inst-grid">
+    <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+  </div>
+
+  <div id="empty-state" style="display:none" class="empty-state">
+    <div class="empty-state-icon">🏛️</div>
+    <h3>Nenhuma instituição encontrada</h3>
+    <p>Seja o primeiro a cadastrar sua instituição no GeneLink.</p>
+  </div>
+</div>
+
+<!-- Modal de cadastro -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <h2>Cadastrar Instituição</h2>
+    <div id="modal-alert" class="alert"></div>
+    <form id="inst-form" onsubmit="submitInstitution(event)">
+      <div class="form-group">
+        <label class="form-label">Nome Completo <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="inst-name" class="form-control" placeholder="Universidade de São Paulo" required>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Nome Abreviado</label>
+          <input type="text" id="inst-short" class="form-control" placeholder="USP">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select id="inst-type" class="form-control">
+            <option>Universidade</option>
+            <option>Instituto de Pesquisa</option>
+            <option>Hospital Universitário</option>
+            <option>Centro de Biotecnologia</option>
+            <option>Empresa de Biotecnologia</option>
+            <option>Organização Internacional</option>
+            <option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">CNPJ</label>
+        <input type="text" id="inst-cnpj" class="form-control" placeholder="00.000.000/0001-00">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Cidade</label>
+          <input type="text" id="inst-city" class="form-control" placeholder="São Paulo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <input type="text" id="inst-state" class="form-control" placeholder="SP">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Site Institucional</label>
+        <input type="url" id="inst-website" class="form-control" placeholder="https://www.usp.br">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Domínio de E-mail</label>
+        <input type="text" id="inst-domain" class="form-control" placeholder="usp.br">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <textarea id="inst-desc" class="form-control" rows="3" placeholder="Breve descrição da instituição e suas áreas de pesquisa…"></textarea>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:4px">
+        <button type="submit" id="submit-btn" class="btn btn-primary" style="flex:1">Cadastrar</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/institucional.js"></script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instituição · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.inst-hero { background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%); color:#fff; padding:40px 0 36px; }
+.inst-hero-inner { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+.inst-logo-lg { width:72px; height:72px; border-radius:14px; background:rgba(255,255,255,.15); border:2px solid rgba(255,255,255,.25); color:#fff; display:grid; place-items:center; font-size:1.6rem; font-weight:800; flex-shrink:0; }
+.inst-title { font-size:1.6rem; font-weight:800; color:#fff; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.verified-seal { display:inline-flex; align-items:center; gap:4px; font-size:.78rem; font-weight:700; color:#e3f2fd; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); border-radius:20px; padding:4px 12px; }
+.inst-meta-row { color:rgba(255,255,255,.72); font-size:.88rem; margin-top:6px; display:flex; gap:16px; flex-wrap:wrap; }
+.member-card { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.member-card:last-child { border-bottom:none; }
+.member-avatar { width:36px; height:36px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:.8rem; font-weight:700; flex-shrink:0; }
+.channel-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--radius); transition:background .15s; cursor:pointer; }
+.channel-item:hover { background:var(--surface-alt); }
+.channel-hash { font-size:1.1rem; color:var(--text-muted); }
+.tab-nav { display:flex; border-bottom:2px solid var(--border); margin-bottom:20px; gap:0; }
+.tab-link { padding:10px 20px; font-size:.9rem; font-weight:600; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; cursor:pointer; transition:all .15s; }
+.tab-link.active { color:var(--primary); border-bottom-color:var(--primary); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="inst-hero" id="inst-hero">
+  <div class="container">
+    <div class="inst-hero-inner">
+      <div class="inst-logo-lg" id="hero-logo">GL</div>
+      <div>
+        <div class="inst-title" id="hero-title">Carregando…</div>
+        <div class="inst-meta-row" id="hero-meta"></div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap" id="hero-actions"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container page-content">
+  <div id="inst-error" style="display:none;color:var(--danger);padding:12px"></div>
+
+  <div class="tab-nav">
+    <div class="tab-link active" onclick="switchTab('sobre')">Sobre</div>
+    <div class="tab-link" onclick="switchTab('membros')">Membros</div>
+    <div class="tab-link" onclick="switchTab('canais')">Canais</div>
+  </div>
+
+  <div id="tab-sobre" class="tab-panel active">
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-header"><h2>Informações</h2></div>
+          <div class="card-body" id="inst-info">
+            <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-header"><h2>Descrição</h2></div>
+          <div class="card-body" id="inst-desc-text" style="font-size:.9rem;line-height:1.7;color:var(--text-muted)">
+            <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-membros" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <h2>Membros</h2>
+        <span id="member-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+      </div>
+      <div class="card-body" id="members-list">
+        <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-canais" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <h2>Canais Institucionais</h2>
+        <span style="font-size:.82rem;color:var(--text-muted)">Comunicação interna da instituição</span>
+      </div>
+      <div class="card-body" id="channels-list">
+        <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script>
+const instId = parseInt(window.location.pathname.split("/").pop());
+
+document.addEventListener("DOMContentLoaded", async () => {
+  requireAuth();
+  injectNavbar("/institucional");
+  loadInstitution();
+});
+
+async function loadInstitution() {
+  try {
+    const res = await apiFetch(`/institutions/${instId}`);
+    const inst = await res.json();
+    if (!res.ok) throw new Error(inst.error || "Erro");
+    renderHero(inst);
+    renderSobre(inst);
+    renderMembros(inst.members || []);
+    renderCanais(inst.channels || []);
+  } catch (e) {
+    document.getElementById("inst-error").style.display = "block";
+    document.getElementById("inst-error").textContent = "Erro ao carregar instituição: " + e.message;
+  }
+}
+
+function renderHero(inst) {
+  document.title = inst.name + " · GeneLink";
+  document.getElementById("hero-logo").textContent = inst.logo_initials || inst.name.slice(0,2).toUpperCase();
+  const verifiedBadge = inst.is_verified
+    ? `<span class="verified-seal">✓ Verificada</span>` : "";
+  document.getElementById("hero-title").innerHTML = inst.name + " " + verifiedBadge;
+  const meta = [
+    inst.type || "",
+    [inst.city, inst.state].filter(Boolean).join(", "),
+    inst.member_count + " membro(s)",
+  ].filter(Boolean).join(" · ");
+  document.getElementById("hero-meta").textContent = meta;
+
+  const user = getUser();
+  const myId = user ? user.id : null;
+  const actions = document.getElementById("hero-actions");
+  actions.innerHTML = `
+    <button class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)"
+      onclick="joinInstitution(${inst.id})">Participar</button>
+    <a href="/gl/institucional" class="btn btn-sm btn-ghost" style="border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.82)">← Instituições</a>
+  `;
+}
+
+function renderSobre(inst) {
+  const info = document.getElementById("inst-info");
+  const rows = [
+    ["Tipo", inst.type],
+    ["CNPJ", inst.cnpj],
+    ["Cidade/Estado", [inst.city, inst.state].filter(Boolean).join(", ")],
+    ["País", inst.country],
+    ["Site", inst.website ? `<a href="${inst.website}" target="_blank" rel="noopener">${inst.website}</a>` : ""],
+    ["E-mail domínio", inst.email_domain ? "@" + inst.email_domain : ""],
+    ["Verificada", inst.is_verified ? "✓ Sim" : "Não"],
+    ["Membros", inst.member_count],
+  ].filter(r => r[1]);
+  info.innerHTML = rows.map(([k,v]) => `
+    <div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem">
+      <span style="color:var(--text-muted);min-width:120px">${k}</span>
+      <span>${v}</span>
+    </div>
+  `).join("");
+
+  const desc = document.getElementById("inst-desc-text");
+  desc.textContent = inst.description || "Nenhuma descrição disponível.";
+}
+
+function renderMembros(members) {
+  document.getElementById("member-count-label").textContent = members.length + " membro(s)";
+  const el = document.getElementById("members-list");
+  if (!members.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><p>Nenhum membro ainda.</p></div>`;
+    return;
+  }
+  el.innerHTML = members.map(m => `
+    <div class="member-card">
+      <div class="member-avatar">${m.avatar_initials || m.username.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:6px">
+          ${m.username}
+          ${m.is_verified ? `<span class="verified-seal" style="font-size:.65rem;padding:1px 7px">✓</span>` : ""}
+          ${m.role === "admin" ? `<span style="font-size:.7rem;background:var(--primary);color:#fff;border-radius:20px;padding:1px 7px">Admin</span>` : ""}
+        </div>
+        <div style="font-size:.8rem;color:var(--text-muted)">${m.research_area || m.full_name || ""}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderCanais(channels) {
+  const el = document.getElementById("channels-list");
+  if (!channels.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">#</div><p>Nenhum canal disponível.</p></div>`;
+    return;
+  }
+  el.innerHTML = channels.map(c => `
+    <div class="channel-item" onclick="window.location='/canal/${c.id}'">
+      <span class="channel-hash">#</span>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:.9rem">${c.name}</div>
+        <div style="font-size:.8rem;color:var(--text-muted)">${c.description || ""}</div>
+      </div>
+      <span style="font-size:.78rem;color:var(--text-muted)">${c.is_public ? "Público" : "Restrito"}</span>
+    </div>
+  `).join("");
+}
+
+function switchTab(name) {
+  document.querySelectorAll(".tab-link").forEach((el, i) => {
+    el.classList.toggle("active", ["sobre","membros","canais"][i] === name);
+  });
+  document.querySelectorAll(".tab-panel").forEach(el => el.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+}
+
+async function joinInstitution(id) {
+  try {
+    const res = await apiFetch(`/institutions/${id}/join`, { method: "POST" });
+    if (res.ok) {
+      alert("Você entrou na instituição!");
+      location.reload();
+    } else {
+      const d = await res.json();
+      alert(d.error || "Erro ao entrar");
+    }
+  } catch { alert("Erro de conexão"); }
+}
+</script>
+</body>
+</html>

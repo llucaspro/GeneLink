@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.admin-header { background:linear-gradient(135deg,#2c3e50,#1a252f); color:#fff; padding:32px 0 28px; }
+.admin-header h1 { color:#fff; font-size:1.5rem; }
+.admin-header p { color:rgba(255,255,255,.7); font-size:.88rem; margin-top:4px; }
+.tab-nav { display:flex; border-bottom:2px solid var(--border); margin-bottom:24px; }
+.tab-link { padding:10px 20px; font-size:.9rem; font-weight:600; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; cursor:pointer; }
+.tab-link.active { color:var(--primary); border-bottom-color:var(--primary); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+.stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-bottom:28px; }
+.stat-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 18px; text-align:center; }
+.stat-box .num { font-size:2rem; font-weight:800; color:var(--primary); }
+.stat-box .lbl { font-size:.78rem; color:var(--text-muted); margin-top:2px; }
+.action-cell { display:flex; gap:6px; flex-wrap:wrap; }
+table { width:100%; border-collapse:collapse; font-size:.85rem; }
+th { text-align:left; padding:8px 12px; border-bottom:2px solid var(--border); font-size:.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
+td { padding:10px 12px; border-bottom:1px solid var(--border); }
+tr:hover td { background:var(--surface-alt); }
+.badge-verified { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; border-radius:20px; padding:2px 8px; font-size:.72rem; font-weight:700; }
+.badge-unverified { background:#fff8e1; color:#f57f17; border:1px solid #ffe082; border-radius:20px; padding:2px 8px; font-size:.72rem; font-weight:700; }
+.access-denied { text-align:center; padding:80px 20px; }
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div id="access-denied" class="access-denied" style="display:none">
+  <div style="font-size:3rem">🔒</div>
+  <h2 style="margin-top:12px">Acesso Restrito</h2>
+  <p style="color:var(--text-muted);margin-top:8px">Apenas administradores podem acessar este painel.</p>
+  <a href="/gl/dashboard" class="btn btn-primary" style="margin-top:20px">Voltar ao Painel</a>
+</div>
+
+<div id="admin-content" style="display:none">
+  <div class="admin-header">
+    <div class="container">
+      <h1>⚙️ Painel Administrativo</h1>
+      <p>Gerencie usuários, instituições e verificações do GeneLink.</p>
+    </div>
+  </div>
+
+  <div class="container page-content">
+    <div id="stats-row" class="stat-row">
+      <div class="stat-box"><div class="num" id="s-users">—</div><div class="lbl">Usuários</div></div>
+      <div class="stat-box"><div class="num" id="s-insts">—</div><div class="lbl">Instituições</div></div>
+      <div class="stat-box"><div class="num" id="s-verified">—</div><div class="lbl">Inst. Verificadas</div></div>
+      <div class="stat-box"><div class="num" id="s-posts">—</div><div class="lbl">Posts no Fórum</div></div>
+      <div class="stat-box"><div class="num" id="s-searches">—</div><div class="lbl">Buscas de Genes</div></div>
+    </div>
+
+    <div class="tab-nav">
+      <div class="tab-link active" onclick="switchTab('institutions')">🏛️ Instituições</div>
+      <div class="tab-link" onclick="switchTab('users')">👤 Usuários</div>
+      <div class="tab-link" onclick="switchTab('forum')">📋 Fórum</div>
+      <div class="tab-link" onclick="switchTab('preprints')">🔬 Pré-publicações</div>
+    </div>
+
+    <!-- Institutions tab -->
+    <div id="tab-institutions" class="tab-panel active">
+      <div id="admin-alert-inst" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Gerenciar Instituições</h2>
+          <span id="inst-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th><th>CNPJ</th><th>Tipo</th><th>Membros</th><th>Status</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="inst-table-body">
+              <tr><td colspan="6"><div class="loading-state"><div class="spinner spinner-dark"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users tab -->
+    <div id="tab-users" class="tab-panel">
+      <div id="admin-alert-user" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Gerenciar Usuários</h2>
+          <span id="user-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuário</th><th>E-mail</th><th>Instituição</th><th>Verificado</th><th>Admin</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="user-table-body">
+              <tr><td colspan="6"><div class="loading-state"><div class="spinner spinner-dark"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preprints tab -->
+    <div id="tab-preprints" class="tab-panel">
+      <div id="admin-alert-preprint" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Gerenciar Pré-publicações</h2>
+          <span id="preprint-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Título</th><th>Tipo</th><th>Autor</th><th>Revisões</th><th>Status</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="preprint-table-body">
+              <tr><td colspan="6"><div class="loading-state"><div class="spinner spinner-dark"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forum tab -->
+    <div id="tab-forum" class="tab-panel">
+      <div id="admin-alert-forum" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Gerenciar Publicações do Fórum</h2>
+          <span id="forum-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Título</th><th>Categoria</th><th>Autor</th><th>Comentários</th><th>Data</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="forum-table-body">
+              <tr><td colspan="6"><div class="loading-state"><div class="spinner spinner-dark"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:28px;width:100%;max-width:420px;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,.22)">
+    <div style="font-size:2.2rem;text-align:center;margin-bottom:12px">⚠️</div>
+    <h3 style="font-size:1rem;font-weight:700;text-align:center;margin-bottom:8px" id="confirm-title">Confirmar exclusão</h3>
+    <p style="font-size:.87rem;color:var(--text-muted);text-align:center;margin-bottom:20px" id="confirm-body">Esta ação não pode ser desfeita.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-danger btn-block" id="confirm-ok-btn">Excluir</button>
+      <button class="btn btn-ghost btn-block" onclick="closeConfirm()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/admin.js"></script>
+</body>
+</html>

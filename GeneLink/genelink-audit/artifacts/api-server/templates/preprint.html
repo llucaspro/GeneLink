@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pré-publicação · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.preprint-hero { background:linear-gradient(135deg,#1a3a5c,#0d2137); color:#fff; padding:32px 0 28px; }
+.preprint-hero h1 { color:#fff; font-size:1.45rem; line-height:1.4; }
+.preprint-hero .meta { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; font-size:.84rem; color:rgba(255,255,255,.72); }
+.layout { display:grid; grid-template-columns:1fr 300px; gap:24px; align-items:start; }
+@media(max-width:768px){ .layout { grid-template-columns:1fr; } }
+.content-body { font-size:.93rem; line-height:1.9; color:var(--text); white-space:pre-wrap; }
+.type-badge { border-radius:20px; padding:3px 12px; font-size:.75rem; font-weight:700; border:1px solid; display:inline-block; }
+.type-hipotese,.type-hip-tese { background:#e8f0fe;color:#1a56db;border-color:#a4c0f4; }
+.type-artigo-preliminar { background:#fce8ff;color:#7c3aed;border-color:#d8b4fe; }
+.type-revisao,.type-revis-o { background:#e8fdf0;color:#166534;border-color:#86efac; }
+.type-experimento { background:#fff7e8;color:#b45309;border-color:#fcd34d; }
+.keyword-tag { background:var(--surface-alt); border:1px solid var(--border); border-radius:20px; padding:2px 8px; font-size:.72rem; color:var(--text-muted); }
+.review-card { border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 18px; margin-bottom:12px; background:var(--surface); }
+.star-rating { display:flex; gap:3px; }
+.star { font-size:1.1rem; color:#e0e0e0; }
+.star.filled { color:#f59e0b; }
+.avatar-md { width:40px; height:40px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.82rem; font-weight:700; flex-shrink:0; }
+.status-badge { border-radius:20px; padding:3px 12px; font-size:.75rem; font-weight:700; }
+.status-submitted { background:#fff8e1;color:#f57f17;border:1px solid #ffe082; }
+.status-under_review { background:#e3f2fd;color:#1565c0;border:1px solid #90caf9; }
+.status-published { background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7; }
+.status-draft { background:#f5f5f5;color:#757575;border:1px solid #e0e0e0; }
+.sidebar-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; margin-bottom:16px; }
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div id="preprint-hero" class="preprint-hero" style="display:none">
+  <div class="container">
+    <div style="margin-bottom:12px">
+      <span id="hero-type-badge" class="type-badge"></span>
+      <span id="hero-status-badge" class="status-badge" style="margin-left:8px"></span>
+    </div>
+    <h1 id="hero-title">Carregando...</h1>
+    <div class="meta">
+      <span id="hero-author"></span>
+      <span id="hero-institution"></span>
+      <span id="hero-date"></span>
+      <span id="hero-reviews"></span>
+    </div>
+    <div id="hero-keywords" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px"></div>
+  </div>
+</div>
+
+<div class="container page-content" id="main-content" style="display:none">
+  <div style="margin-bottom:16px">
+    <a href="/gl/preprints" class="btn btn-ghost btn-sm">← Voltar às Pré-publicações</a>
+  </div>
+  <div class="layout">
+    <!-- Main column -->
+    <div>
+      <!-- Abstract -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-body" style="padding:20px 24px">
+          <h2 style="font-size:1rem;font-weight:700;margin-bottom:12px;color:var(--primary)">Resumo (Abstract)</h2>
+          <p id="preprint-abstract" style="font-size:.93rem;line-height:1.8;color:var(--text-muted)"></p>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-body" style="padding:20px 24px">
+          <h2 style="font-size:1rem;font-weight:700;margin-bottom:16px">Conteúdo Completo</h2>
+          <div id="preprint-content" class="content-body"></div>
+        </div>
+      </div>
+
+      <!-- Reviews -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Revisões da Comunidade</h2>
+          <span id="review-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div class="card-body" style="padding:20px 24px">
+          <div id="reviews-alert" class="alert"></div>
+          <div id="reviews-list"></div>
+
+          <div id="review-form-wrapper" style="margin-top:20px;border-top:1px solid var(--border);padding-top:20px">
+            <h3 style="font-size:.95rem;font-weight:700;margin-bottom:14px">Deixar uma Revisão</h3>
+            <div class="form-group">
+              <label class="form-label">Avaliação (opcional)</label>
+              <div style="display:flex;gap:6px;margin-bottom:12px" id="star-input">
+                <button type="button" class="star-btn" data-val="1" onclick="setRating(1)">★</button>
+                <button type="button" class="star-btn" data-val="2" onclick="setRating(2)">★</button>
+                <button type="button" class="star-btn" data-val="3" onclick="setRating(3)">★</button>
+                <button type="button" class="star-btn" data-val="4" onclick="setRating(4)">★</button>
+                <button type="button" class="star-btn" data-val="5" onclick="setRating(5)">★</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sua revisão *</label>
+              <textarea id="review-content" class="form-input" rows="5" placeholder="Descreva seus comentários, sugestões ou avaliação deste trabalho..." style="resize:vertical"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="submitReview()">Enviar Revisão</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+      <div class="sidebar-card" id="author-card">
+        <h3>Sobre o Autor</h3>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="avatar-md" id="author-initials"></div>
+          <div>
+            <div style="font-weight:700;font-size:.9rem" id="author-username"></div>
+            <div style="font-size:.78rem;color:var(--text-muted)" id="author-institution-info"></div>
+          </div>
+        </div>
+        <div style="font-size:.8rem;color:var(--text-muted)" id="author-area"></div>
+      </div>
+
+      <div class="sidebar-card" id="owner-actions" style="display:none">
+        <h3>Suas Ações</h3>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-danger btn-sm" onclick="deleteThisPreprint()">Excluir Pré-publicação</button>
+        </div>
+        <p style="font-size:.74rem;color:var(--text-muted);margin-top:10px">Apenas você pode ver e gerenciar suas ações aqui.</p>
+      </div>
+
+      <div class="sidebar-card">
+        <h3>Informações</h3>
+        <table style="width:100%;font-size:.82rem">
+          <tr><td style="color:var(--text-muted);padding:4px 0">Tipo</td><td id="info-type" style="font-weight:600;text-align:right"></td></tr>
+          <tr><td style="color:var(--text-muted);padding:4px 0">Status</td><td id="info-status" style="text-align:right"></td></tr>
+          <tr><td style="color:var(--text-muted);padding:4px 0">Enviado em</td><td id="info-date" style="text-align:right"></td></tr>
+          <tr><td style="color:var(--text-muted);padding:4px 0">Revisões</td><td id="info-reviews" style="text-align:right"></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="loading-state" class="loading-state" style="padding:80px 0">
+  <div class="spinner spinner-dark"></div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script>
+const STATUS_LABELS = { draft:"Rascunho", submitted:"Submetido", under_review:"Em revisão", published:"Publicado" };
+const preprintId = parseInt(window.location.pathname.split("/").pop());
+let currentRating = null;
+let preprintData = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+  requireAuth();
+  injectNavbar("/gl/preprints");
+  await loadPreprint();
+});
+
+async function loadPreprint() {
+  try {
+    const res = await apiFetch(`/preprints/${preprintId}`);
+    if (!res.ok) { showError("Pré-publicação não encontrada."); return; }
+    preprintData = await res.json();
+    renderPreprint(preprintData);
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById("loading-state").innerHTML =
+    `<div style="text-align:center;color:var(--danger);padding:60px 20px">${msg}</div>`;
+}
+
+function renderPreprint(p) {
+  document.title = `${p.title} · GeneLink`;
+  document.getElementById("loading-state").style.display = "none";
+  document.getElementById("preprint-hero").style.display = "block";
+  document.getElementById("main-content").style.display = "block";
+
+  const typeSlug = (p.type||"").toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  const typeBadge = document.getElementById("hero-type-badge");
+  typeBadge.className = `type-badge type-${typeSlug}`;
+  typeBadge.textContent = p.type;
+
+  const statusBadge = document.getElementById("hero-status-badge");
+  statusBadge.className = `status-badge status-${p.status}`;
+  statusBadge.textContent = STATUS_LABELS[p.status] || p.status;
+
+  document.getElementById("hero-title").textContent = p.title;
+  document.getElementById("hero-author").textContent = "✍️ " + p.author_username;
+  document.getElementById("hero-institution").textContent = p.author_institution ? "🏛️ " + p.author_institution : "";
+  document.getElementById("hero-date").textContent = "📅 " + new Date(p.created_at).toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
+  document.getElementById("hero-reviews").textContent = "💬 " + (p.reviews||[]).length + " revisão(ões)";
+
+  if (p.keywords) {
+    document.getElementById("hero-keywords").innerHTML = p.keywords.split(",").map(k => `<span class="keyword-tag" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8);background:rgba(255,255,255,.1)">${esc(k.trim())}</span>`).join("");
+  }
+
+  document.getElementById("preprint-abstract").textContent = p.abstract;
+  document.getElementById("preprint-content").textContent = p.content;
+
+  document.getElementById("author-initials").textContent = p.author_initials || "?";
+  document.getElementById("author-username").textContent = p.author_username;
+  document.getElementById("author-institution-info").textContent = p.author_institution || "";
+  document.getElementById("author-area").textContent = p.author_research_area ? "Área: " + p.author_research_area : "";
+
+  document.getElementById("info-type").textContent = p.type;
+  document.getElementById("info-status").innerHTML = `<span class="status-badge status-${p.status}" style="font-size:.7rem">${STATUS_LABELS[p.status]}</span>`;
+  document.getElementById("info-date").textContent = new Date(p.created_at).toLocaleDateString("pt-BR");
+  document.getElementById("info-reviews").textContent = (p.reviews||[]).length;
+
+  const currentUser = getUser();
+  if (currentUser && p.author_id === currentUser.id) {
+    document.getElementById("owner-actions").style.display = "block";
+    document.getElementById("review-form-wrapper").style.display = "none";
+  }
+
+  renderReviews(p.reviews || []);
+}
+
+function renderReviews(reviews) {
+  const container = document.getElementById("reviews-list");
+  const countLabel = document.getElementById("review-count-label");
+  countLabel.textContent = reviews.length + " revisão(ões)";
+  if (!reviews.length) {
+    container.innerHTML = `<p style="color:var(--text-muted);font-size:.87rem">Ainda não há revisões. Seja o primeiro a revisar!</p>`;
+    return;
+  }
+  container.innerHTML = reviews.map(r => {
+    const stars = r.rating ? Array.from({length:5},(_,i)=>`<span class="star${i<r.rating?' filled':''}">★</span>`).join("") : "";
+    return `
+      <div class="review-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="avatar-md" style="width:32px;height:32px;font-size:.7rem">${esc(r.reviewer_initials||"?")}</div>
+            <div>
+              <div style="font-weight:600;font-size:.85rem">${esc(r.reviewer_username)}</div>
+              ${r.reviewer_institution?`<div style="font-size:.74rem;color:var(--text-muted)">${esc(r.reviewer_institution)}</div>`:""}
+            </div>
+          </div>
+          ${stars?`<div class="star-rating">${stars}</div>`:""}
+        </div>
+        <p style="font-size:.87rem;line-height:1.7;color:var(--text)">${esc(r.content)}</p>
+        <div style="font-size:.74rem;color:var(--text-muted);margin-top:8px">${timeAgo(r.created_at)}</div>
+      </div>`;
+  }).join("");
+}
+
+const starBtns = document.querySelectorAll(".star-btn");
+function setRating(val) {
+  currentRating = currentRating === val ? null : val;
+  starBtns.forEach(btn => {
+    const v = parseInt(btn.dataset.val);
+    btn.style.color = currentRating && v <= currentRating ? "#f59e0b" : "#ccc";
+    btn.style.fontSize = "1.4rem";
+  });
+}
+
+async function submitReview() {
+  const alertEl = document.getElementById("reviews-alert");
+  const content = document.getElementById("review-content").value.trim();
+  if (!content || content.length < 10) {
+    showAlert(alertEl, "A revisão deve ter ao menos 10 caracteres.", "error");
+    return;
+  }
+  try {
+    const res = await apiFetch(`/preprints/${preprintId}/reviews`, {
+      method: "POST",
+      body: JSON.stringify({ content, rating: currentRating }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById("review-content").value = "";
+      currentRating = null;
+      starBtns.forEach(b => b.style.color = "#ccc");
+      hideAlert(alertEl);
+      await loadPreprint();
+    } else {
+      showAlert(alertEl, data.error || "Erro ao enviar revisão", "error");
+    }
+  } catch {
+    showAlert(alertEl, "Erro de conexão", "error");
+  }
+}
+
+async function deleteThisPreprint() {
+  if (!confirm("Excluir esta pré-publicação? Esta ação não pode ser desfeita.")) return;
+  try {
+    const res = await apiFetch(`/preprints/${preprintId}`, { method: "DELETE" });
+    if (res.ok) {
+      window.location.href = "/gl/preprints";
+    } else {
+      const d = await res.json();
+      alert(d.error || "Erro ao excluir");
+    }
+  } catch { alert("Erro de conexão"); }
+}
+
+function esc(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+</script>
+</body>
+</html>

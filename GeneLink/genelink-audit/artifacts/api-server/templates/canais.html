@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canais · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.channel-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+.channel-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 20px; box-shadow:var(--shadow-sm); transition:box-shadow .2s,border-color .2s; cursor:pointer; }
+.channel-card:hover { box-shadow:var(--shadow-md); border-color:var(--primary-light); }
+.channel-hash { font-size:1.8rem; margin-bottom:8px; color:var(--primary-light); }
+.channel-name { font-size:1rem; font-weight:700; color:var(--primary); margin-bottom:4px; }
+.channel-desc { font-size:.83rem; color:var(--text-muted); line-height:1.5; }
+.channel-meta { margin-top:12px; font-size:.78rem; color:var(--text-light); display:flex; align-items:center; gap:8px; }
+.channel-badge { font-size:.7rem; padding:2px 8px; border-radius:20px; font-weight:600; }
+.badge-public { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+.badge-private { background:#fff3e0; color:#e65100; border:1px solid #ffcc02; }
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content">
+  <div class="page-header">
+    <h1>Canais Institucionais</h1>
+    <p>Canais de comunicação das instituições parceiras do GeneLink.</p>
+  </div>
+
+  <div id="my-inst-banner" style="display:none;background:var(--primary);color:#fff;border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="flex:1">
+      <div style="font-size:.82rem;opacity:.8;margin-bottom:2px">Sua instituição</div>
+      <div id="my-inst-name" style="font-weight:700;font-size:1.05rem"></div>
+    </div>
+    <a id="my-inst-link" href="#" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25)">Ver Canais →</a>
+  </div>
+
+  <div id="channels-container">
+    <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  requireAuth();
+  injectNavbar("/canais");
+  loadMyInstitution();
+  loadPublicChannels();
+});
+
+async function loadMyInstitution() {
+  try {
+    const res = await apiFetch("/my-institution");
+    const inst = await res.json();
+    if (inst && inst.id) {
+      const banner = document.getElementById("my-inst-banner");
+      banner.style.display = "flex";
+      document.getElementById("my-inst-name").textContent = inst.name;
+      document.getElementById("my-inst-link").href = "/instituicao/" + inst.id;
+    }
+  } catch {}
+}
+
+async function loadPublicChannels() {
+  const el = document.getElementById("channels-container");
+  try {
+    const res = await apiFetch("/institutions?page=1");
+    const data = await res.json();
+    const insts = data.institutions || [];
+
+    if (!insts.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">#</div><h3>Nenhum canal disponível</h3><p>Canais públicos aparecerão aqui quando instituições forem cadastradas.</p></div>`;
+      return;
+    }
+
+    const allChannels = [];
+    for (const inst of insts.slice(0, 8)) {
+      try {
+        const cr = await apiFetch(`/institutions/${inst.id}/channels`);
+        const cd = await cr.json();
+        if (cd.channels) {
+          cd.channels.forEach(ch => allChannels.push({ ...ch, inst_name: inst.name, inst_id: inst.id, inst_verified: inst.is_verified }));
+        }
+      } catch {}
+    }
+
+    if (!allChannels.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">#</div><h3>Nenhum canal público encontrado</h3></div>`;
+      return;
+    }
+
+    el.innerHTML = `<div class="channel-grid">` + allChannels.map(ch => `
+      <div class="channel-card" onclick="window.location='/canal/${ch.id}'">
+        <div class="channel-hash">#</div>
+        <div class="channel-name">${ch.name}</div>
+        <div class="channel-desc">${ch.description || "Canal institucional"}</div>
+        <div class="channel-meta">
+          <span>${ch.inst_name} ${ch.inst_verified ? "✓" : ""}</span>
+          <span class="channel-badge ${ch.is_public ? 'badge-public' : 'badge-private'}">${ch.is_public ? 'Público' : 'Restrito'}</span>
+        </div>
+      </div>
+    `).join("") + `</div>`;
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--danger);padding:12px">Erro: ${e.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>

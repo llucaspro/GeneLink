@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perfil · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.profile-header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  padding: 40px 0 36px;
+  color: #fff;
+}
+.profile-avatar-lg {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  font-weight: 700;
+  border: 3px solid rgba(255,255,255,.35);
+  margin-bottom: 16px;
+}
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="profile-header">
+  <div class="container" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+    <div class="profile-avatar-lg" id="profile-initials">?</div>
+    <div>
+      <div style="font-size:.82rem;color:rgba(255,255,255,.65);margin-bottom:2px">Perfil do Pesquisador</div>
+      <h1 style="color:#fff;font-size:1.6rem;margin-bottom:4px" id="profile-username"></h1>
+      <div style="color:rgba(255,255,255,.75);font-size:.9rem" id="profile-fullname"></div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)" id="edit-toggle-btn" onclick="toggleEdit()">Editar Perfil</button>
+    </div>
+  </div>
+</div>
+
+<div class="container page-content">
+  <div id="profile-error" style="display:none;color:var(--danger);padding:12px;"></div>
+  <div id="profile-alert" class="alert"></div>
+
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-header"><h2>Informações do Pesquisador</h2></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div>
+              <div class="form-label">E-mail</div>
+              <div id="profile-email" style="font-size:.9rem"></div>
+            </div>
+            <div>
+              <div class="form-label">Instituição</div>
+              <div id="profile-institution" style="font-size:.9rem"></div>
+            </div>
+            <div>
+              <div class="form-label">Área de Pesquisa</div>
+              <div id="profile-area" style="font-size:.9rem"></div>
+            </div>
+            <div>
+              <div class="form-label">Membro desde</div>
+              <div id="profile-joined" style="font-size:.9rem"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><h2>Biografia</h2></div>
+        <div class="card-body">
+          <div id="profile-bio" style="font-size:.9rem;color:var(--text-muted);line-height:1.7"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="edit-form" style="display:none">
+      <div class="card">
+        <div class="card-header"><h2>Editar Perfil</h2></div>
+        <div class="card-body">
+          <form id="profile-form">
+            <div class="form-group">
+              <label class="form-label">Nome Completo</label>
+              <input type="text" id="edit-fullname" class="form-control" placeholder="Dr. João Silva">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Instituição</label>
+              <input type="text" id="edit-institution" class="form-control" placeholder="Universidade de São Paulo">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Área de Pesquisa</label>
+              <input type="text" id="edit-area" class="form-control" placeholder="Genômica, Biologia do Câncer…">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Biografia</label>
+              <textarea id="edit-bio" class="form-control" rows="5" placeholder="Descreva sua trajetória, interesses e projetos de pesquisa atuais…"></textarea>
+            </div>
+            <button type="submit" id="save-profile-btn" class="btn btn-primary btn-block">Salvar Alterações</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="placeholder-col" class="card">
+      <div class="card-header"><h2>Atividade na Plataforma</h2></div>
+      <div class="card-body">
+        <p style="color:var(--text-muted);font-size:.88rem;line-height:1.7">Use os links abaixo para acessar suas ferramentas de pesquisa e contribuições à comunidade.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+          <a href="/gl/search" class="btn btn-outline">🔬 Histórico de Buscas de Genes</a>
+          <a href="/gl/forum" class="btn btn-outline">📋 Fórum da Comunidade</a>
+          <a href="/gl/chat" class="btn btn-outline">💬 Chat de Pesquisa</a>
+          <a href="/gl/dashboard" class="btn btn-ghost">← Painel</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/profile.js"></script>
+</body>
+</html>
