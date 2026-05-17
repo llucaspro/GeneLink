@@ -159,6 +159,12 @@ def preprints():
     return render_template("preprints.html")
 
 
+@app.route("/preprints/criar")
+@page_login_required
+def preprint_criar():
+    return render_template("preprint_criar.html")
+
+
 @app.route("/preprint/<int:preprint_id>")
 @page_login_required
 def preprint_view(preprint_id):
