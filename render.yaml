@@ -4,7 +4,7 @@ services:
     runtime: python
     rootDir: GeneLink/genelink-audit
     buildCommand: pip install -r requirements.txt
-    startCommand: python artifacts/api-server/app.py
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --chdir artifacts/api-server app:app
     envVars:
       - key: DATABASE_URL
         sync: false
