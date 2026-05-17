@@ -126,7 +126,8 @@ def inst_applications():
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(
-            """SELECT pa.id, pa.message, pa.created_at,
+            """SELECT pa.id, pa.message,
+                      p.created_at,
                       u.full_name, u.username, u.email, u.avatar_initials, u.research_area,
                       p.title  AS partnership_title,
                       p.type   AS partnership_type,
@@ -135,7 +136,7 @@ def inst_applications():
                JOIN users u        ON u.id = pa.user_id
                JOIN partnerships p ON p.id = pa.partnership_id
                WHERE p.institution_id = %s
-               ORDER BY pa.created_at DESC""",
+               ORDER BY p.created_at DESC""",
             (request.inst_id,),
         )
         rows = [dict(r) for r in cur.fetchall()]
