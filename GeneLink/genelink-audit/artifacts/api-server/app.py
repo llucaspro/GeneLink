@@ -146,6 +146,11 @@ def inst_dashboard():
     return render_template("inst_dashboard.html")
 
 
+@app.route("/inst-candidates")
+def inst_candidates():
+    return render_template("inst_candidates.html")
+
+
 @app.route("/parcerias")
 def parcerias():
     return render_template("parcerias.html")
