@@ -11,6 +11,12 @@ let allLoaded     = [];
 let selectedPid   = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Inject appropriate navbar based on who is logged in
+  if (token) {
+    injectNavbar('/gl/parcerias');
+  } else if (instTok && instData) {
+    injectInstNavbar('/gl/parcerias');
+  }
   loadPartnerships();
 });
 
