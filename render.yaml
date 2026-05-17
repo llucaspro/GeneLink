@@ -3,7 +3,7 @@ services:
     name: genelink-api
     runtime: python
     rootDir: GeneLink/genelink-audit
-    buildCommand: pip install -r artifacts/api-server/requirements.txt
+    buildCommand: pip install -r artifacts/api-server/requirements.txt && pip install gunicorn==22.0.0
     startCommand: python -m gunicorn --bind 0.0.0.0:$PORT --workers 2 --chdir artifacts/api-server app:app
     envVars:
       - key: DATABASE_URL
