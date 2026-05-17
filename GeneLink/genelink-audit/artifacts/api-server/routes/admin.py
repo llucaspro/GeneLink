@@ -36,22 +36,37 @@ def admin_stats():
         users = cur.fetchone()["total"]
         cur.execute("SELECT COUNT(*) AS total FROM institutions")
         institutions = cur.fetchone()["total"]
-        cur.execute("SELECT COUNT(*) AS total FROM institutions WHERE is_verified=TRUE" if True else "SELECT COUNT(*) AS total FROM institutions WHERE is_verified=1")
         try:
+            cur.execute("SELECT COUNT(*) AS total FROM institutions WHERE is_verified=TRUE")
             verified_insts = cur.fetchone()["total"]
         except Exception:
             verified_insts = 0
+        try:
+            cur.execute("SELECT COUNT(*) AS total FROM users WHERE is_verified=TRUE")
+            verified_users = cur.fetchone()["total"]
+        except Exception:
+            verified_users = 0
         cur.execute("SELECT COUNT(*) AS total FROM posts")
         posts = cur.fetchone()["total"]
         cur.execute("SELECT COUNT(*) AS total FROM gene_searches")
         searches = cur.fetchone()["total"]
+        try:
+            cur.execute("SELECT COUNT(*) AS total FROM preprints")
+            preprints = cur.fetchone()["total"]
+        except Exception:
+            preprints = 0
+        cur.execute("SELECT COUNT(*) AS total FROM users WHERE created_at >= NOW() - INTERVAL '7 days'")
+        new_users = cur.fetchone()["total"]
         cur.close(); conn.close()
         return jsonify({
             "users": users,
             "institutions": institutions,
             "verified_institutions": verified_insts,
+            "verified_users": verified_users,
             "posts": posts,
             "gene_searches": searches,
+            "preprints": preprints,
+            "new_users": new_users,
         })
     except Exception as e:
         try:
@@ -70,8 +85,11 @@ def admin_stats():
                 "users": users,
                 "institutions": institutions,
                 "verified_institutions": 0,
+                "verified_users": 0,
                 "posts": posts,
                 "gene_searches": searches,
+                "preprints": 0,
+                "new_users": 0,
             })
         except Exception as e2:
             return jsonify({"error": str(e2)}), 500

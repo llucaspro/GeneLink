@@ -29,19 +29,18 @@ async function checkAdminAccess() {
     document.getElementById("admin-content").style.display = "block";
 
     const stats = await statsRes.json();
-    document.getElementById("s-users").textContent    = stats.users     ?? "—";
+    document.getElementById("s-users").textContent    = stats.users        ?? "—";
     document.getElementById("s-insts").textContent    = stats.institutions ?? "—";
-    document.getElementById("s-verified").textContent = stats.verified_institutions ?? "—";
-    document.getElementById("s-posts").textContent    = stats.posts     ?? "—";
+    document.getElementById("s-verified").textContent = stats.verified_users ?? "—";
+    document.getElementById("s-posts").textContent    = stats.posts        ?? "—";
+    document.getElementById("s-new-week").textContent  = stats.new_users   ?? "—";
+    document.getElementById("s-preprints").textContent = stats.preprints   ?? "—";
 
     if (activityRes.ok) {
       const act = await activityRes.json();
-      document.getElementById("s-new-week").textContent    = act.new_users_week ?? "—";
-      document.getElementById("s-preprints").textContent   = act.total_preprints ?? "—";
+      if (act.new_users_week != null) document.getElementById("s-new-week").textContent  = act.new_users_week;
+      if (act.total_preprints != null) document.getElementById("s-preprints").textContent = act.total_preprints;
       renderActivityFeed(act);
-    } else {
-      document.getElementById("s-new-week").textContent  = "—";
-      document.getElementById("s-preprints").textContent = stats.preprints ?? "—";
     }
   } catch {
     document.getElementById("access-denied").style.display = "block";
