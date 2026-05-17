@@ -8,13 +8,15 @@ def send_email(to_addr: str, subject: str, html_body: str) -> bool:
     """Send email via SMTP. Returns True on success, False on failure (logs error)."""
     smtp_host = os.environ.get("SMTP_HOST", "")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    smtp_user = os.environ.get("SMTP_USER", "")
+    from_addr = os.environ.get("SMTP_FROM", "")
+    smtp_user = os.environ.get("SMTP_USER", "") or from_addr
     smtp_pass = os.environ.get("SMTP_PASS", "")
-    from_addr = os.environ.get("SMTP_FROM", smtp_user or "noreply@genelink.app")
 
-    if not smtp_host or not smtp_user:
+    if not smtp_host or not smtp_user or not smtp_pass:
         print(f"[GeneLink] EMAIL (SMTP not configured) → TO: {to_addr} | SUBJECT: {subject}")
         return False
+    if not from_addr:
+        from_addr = smtp_user
 
     try:
         msg = MIMEMultipart("alternative")
