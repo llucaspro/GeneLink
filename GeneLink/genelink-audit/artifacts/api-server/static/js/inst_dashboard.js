@@ -21,6 +21,7 @@ function instLogout() {
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
+  injectInstNavbar('/gl/inst-dashboard');
   renderHero();
   await Promise.all([loadMembers(), loadLibrary(), loadPartnerships()]);
 });
