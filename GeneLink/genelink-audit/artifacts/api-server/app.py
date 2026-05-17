@@ -22,7 +22,6 @@ class PrefixMiddleware:
 
 from flask import Flask, render_template, jsonify, request, make_response
 import requests as http_requests
-from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 
 from db.init_db import init_db
@@ -41,7 +40,6 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("SESSION_SECRET", "genelink-dev-secret-2024")
 
 CORS(app, resources={r"/api/*": {"origins": "*"}})
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet", logger=False, engineio_logger=False)
 
 app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(genes_bp, url_prefix="/api")
@@ -171,81 +169,85 @@ def preprint_view(preprint_id):
     return render_template("preprint.html")
 
 
-# ── Chat WebSocket ──────────────────────────────────────────────────────────
+# ── Chat REST API (polling-based, reliable on all hosting) ──────────────────
 
-def _get_recent_messages(limit=50):
+@app.route("/api/chat/messages", methods=["GET"])
+@token_required
+def chat_get_messages():
+    after_id = request.args.get("after", 0, type=int)
+    limit = request.args.get("limit", 50, type=int)
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute(
-            """SELECT cm.id, cm.message, cm.created_at, cm.username
-               FROM chat_messages cm
-               ORDER BY cm.created_at DESC LIMIT %s""",
-            (limit,),
-        )
+        if after_id:
+            cur.execute(
+                """SELECT cm.id, cm.message, cm.created_at, cm.username,
+                          u.avatar_initials
+                   FROM chat_messages cm
+                   LEFT JOIN users u ON u.id = cm.user_id
+                   WHERE cm.id > %s
+                   ORDER BY cm.id ASC LIMIT %s""",
+                (after_id, limit),
+            )
+        else:
+            cur.execute(
+                """SELECT cm.id, cm.message, cm.created_at, cm.username,
+                          u.avatar_initials
+                   FROM chat_messages cm
+                   LEFT JOIN users u ON u.id = cm.user_id
+                   ORDER BY cm.id DESC LIMIT %s""",
+                (limit,),
+            )
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        return list(reversed([dict(r) for r in rows]))
-    except Exception:
-        return []
+        messages = [dict(r) for r in rows]
+        if not after_id:
+            messages = list(reversed(messages))
+        for m in messages:
+            if m.get("created_at"):
+                m["created_at"] = str(m["created_at"])
+        return jsonify({"messages": messages})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
-@socketio.on("connect")
-def handle_connect():
-    messages = _get_recent_messages()
-    emit("history", {"messages": messages})
-
-
-@socketio.on("send_message")
-def handle_message(data):
-    import jwt as pyjwt
-    token = data.get("token", "")
+@app.route("/api/chat/messages", methods=["POST"])
+@token_required
+def chat_send_message():
+    data = request.get_json() or {}
     message = (data.get("message") or "").strip()
-    if not message or len(message) > 2000:
-        return
-
-    SECRET_KEY = os.environ.get("SESSION_SECRET", "genelink-dev-secret-2024")
-    try:
-        payload = pyjwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        user_id = payload["user_id"]
-    except Exception:
-        emit("error", {"message": "Authentication required to send messages"})
-        return
-
+    if not message:
+        return jsonify({"error": "Mensagem não pode estar vazia"}), 400
+    if len(message) > 2000:
+        return jsonify({"error": "Mensagem muito longa (máx 2000 caracteres)"}), 400
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT username, avatar_initials FROM users WHERE id=%s", (user_id,))
+        cur.execute("SELECT username, avatar_initials FROM users WHERE id=%s", (request.user_id,))
         user = cur.fetchone()
         if not user:
-            cur.close()
-            conn.close()
-            return
+            cur.close(); conn.close()
+            return jsonify({"error": "Usuário não encontrado"}), 404
         cur.execute(
             """INSERT INTO chat_messages (user_id, username, message)
                VALUES (%s, %s, %s)
                RETURNING id, created_at""",
-            (user_id, user["username"], message),
+            (request.user_id, user["username"], message),
         )
         row = cur.fetchone()
         conn.commit()
         cur.close()
         conn.close()
-        socketio.emit("new_message", {
+        return jsonify({
             "id": row["id"],
             "username": user["username"],
             "avatar_initials": user["avatar_initials"],
             "message": message,
             "created_at": str(row["created_at"]),
-        })
-    except Exception:
-        emit("error", {"message": "Failed to send message"})
-
-
-@socketio.on("disconnect")
-def handle_disconnect():
-    pass
+        }), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ── Health check ────────────────────────────────────────────────────────────
@@ -261,4 +263,4 @@ if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 8080))
     print(f"[GeneLink] Starting on port {port}")
-    socketio.run(app, host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)
