@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Candidatos · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+/* ── Hero ─────────────────────────────────────────────────── */
+.cand-hero {
+  background: linear-gradient(135deg, #071e33 0%, #1b4f72 55%, #0b3356 100%);
+  border-radius: 18px;
+  padding: 32px 40px;
+  color: #fff;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.cand-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -40px;
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(34,196,100,.2) 0%, transparent 68%);
+  pointer-events: none;
+}
+.cand-hero-inner { position: relative; z-index: 1; }
+.cand-hero-label {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: rgba(255,255,255,.5); margin-bottom: 8px;
+}
+.cand-hero h1 { font-size: 1.6rem; font-weight: 800; color: #fff; margin-bottom: 6px; }
+.cand-hero-sub { font-size: .85rem; color: rgba(255,255,255,.6); }
+
+/* ── Stats row ────────────────────────────────────────────── */
+.stat-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;
+}
+.stat-card-sm {
+  background: #fff; border: 1px solid #e2eaf4; border-radius: 14px;
+  padding: 18px 20px; display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 1px 5px rgba(27,79,114,.06);
+}
+.stat-icon {
+  width: 44px; height: 44px; border-radius: 11px;
+  display: grid; place-items: center; font-size: 1.2rem; flex-shrink: 0;
+}
+.stat-val { font-size: 1.4rem; font-weight: 800; color: var(--primary); line-height: 1; }
+.stat-lbl { font-size: .74rem; color: var(--text-muted); margin-top: 3px; }
+
+/* ── Group header ─────────────────────────────────────────── */
+.group-hd {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px; background: var(--surface-alt);
+  border: 1px solid var(--border); border-radius: 12px;
+  margin-bottom: 10px; margin-top: 20px;
+}
+.group-hd:first-of-type { margin-top: 0; }
+.group-hd-icon {
+  width: 38px; height: 38px; border-radius: 9px;
+  background: linear-gradient(135deg, #1b4f72, #2e86c1);
+  color: #fff; display: grid; place-items: center;
+  font-weight: 800; font-size: .82rem; flex-shrink: 0;
+}
+.group-hd-info { flex: 1; min-width: 0; }
+.group-hd-title { font-size: .95rem; font-weight: 700; color: var(--text); }
+.group-hd-meta { font-size: .78rem; color: var(--text-muted); margin-top: 2px; }
+.group-count {
+  background: var(--primary); color: #fff;
+  border-radius: 20px; padding: 3px 12px;
+  font-size: .75rem; font-weight: 700; flex-shrink: 0;
+}
+
+/* ── Candidate card ───────────────────────────────────────── */
+.cand-card {
+  background: #fff; border: 1px solid #e2eaf4; border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 10px;
+  display: flex; gap: 14px; align-items: flex-start;
+  box-shadow: 0 1px 4px rgba(27,79,114,.05);
+  transition: box-shadow .18s, border-color .18s;
+}
+.cand-card:hover { box-shadow: 0 4px 16px rgba(27,79,114,.1); border-color: #c5d8ef; }
+.cand-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: grid; place-items: center;
+  font-weight: 700; font-size: .92rem; flex-shrink: 0;
+}
+.cand-info { flex: 1; min-width: 0; }
+.cand-name { font-size: .95rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.cand-email {
+  font-size: .8rem; color: var(--primary-light); font-weight: 600;
+  display: flex; align-items: center; gap: 5px; margin-bottom: 8px;
+}
+.cand-message {
+  font-size: .83rem; color: var(--text-muted); line-height: 1.55;
+  background: var(--surface-alt); border-left: 3px solid var(--border);
+  padding: 8px 12px; border-radius: 0 6px 6px 0; margin-bottom: 8px;
+}
+.cand-footer { font-size: .74rem; color: var(--text-light); }
+.cand-area {
+  background: #e8f1f8; color: var(--primary);
+  border-radius: 20px; padding: 2px 9px;
+  font-size: .7rem; font-weight: 600; display: inline-block;
+  margin-bottom: 8px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .cand-hero { padding: 24px 20px; }
+  .cand-hero h1 { font-size: 1.25rem; }
+  .stat-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .stat-row { grid-template-columns: 1fr; }
+  .cand-card { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content" style="padding-top:24px; max-width:900px">
+
+  <!-- ── Hero ───────────────────────────────────────────────── -->
+  <div class="cand-hero">
+    <div class="cand-hero-inner">
+      <div class="cand-hero-label">Candidatos · GeneLink</div>
+      <h1>👥 Candidatos às suas vagas</h1>
+      <div class="cand-hero-sub">Pesquisadores que se candidataram às oportunidades publicadas por <strong id="inst-name-hero" style="color:#6dd5fa">sua instituição</strong></div>
+    </div>
+  </div>
+
+  <!-- ── Stats ──────────────────────────────────────────────── -->
+  <div class="stat-row">
+    <div class="stat-card-sm">
+      <div class="stat-icon" style="background:#e8f1f8">📋</div>
+      <div>
+        <div class="stat-val" id="s-total">—</div>
+        <div class="stat-lbl">Candidaturas totais</div>
+      </div>
+    </div>
+    <div class="stat-card-sm">
+      <div class="stat-icon" style="background:#e2f5f1">📢</div>
+      <div>
+        <div class="stat-val" id="s-vagas">—</div>
+        <div class="stat-lbl">Vagas com candidatos</div>
+      </div>
+    </div>
+    <div class="stat-card-sm">
+      <div class="stat-icon" style="background:#fef3c7">📅</div>
+      <div>
+        <div class="stat-val" id="s-recent" style="font-size:.95rem">—</div>
+        <div class="stat-lbl">Última candidatura</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Candidates list ────────────────────────────────────── -->
+  <div id="candidates-container">
+    <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+  </div>
+
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/inst_candidates.js"></script>
+</body>
+</html>
