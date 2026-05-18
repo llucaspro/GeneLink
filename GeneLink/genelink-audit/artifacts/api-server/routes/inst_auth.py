@@ -5,19 +5,27 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import Blueprint, request, jsonify, make_response
 from db.connection import get_connection
+from routes.security import (
+    limiter,
+    get_lockout_seconds,
+    record_failed_login,
+    clear_failed_logins,
+)
 
 inst_auth_bp = Blueprint("inst_auth", __name__)
 
 SECRET_KEY = os.environ.get("SESSION_SECRET", "genelink-dev-secret")
+_IS_PRODUCTION = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
 INST_COOKIE = "gl_inst_session"
-COOKIE_MAX_AGE = 7 * 24 * 60 * 60
+COOKIE_MAX_AGE = 24 * 60 * 60  # 24 horas
 
 
 def generate_inst_token(inst_id):
     payload = {
         "inst_id": inst_id,
         "account_type": "institution",
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=24),
+        "iat": datetime.now(timezone.utc),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
@@ -46,6 +54,7 @@ def inst_token_required(f):
 
 
 @inst_auth_bp.route("/institutions/login", methods=["POST"])
+@limiter.limit("5 per minute;15 per hour")
 def inst_login():
     data = request.get_json() or {}
     email = (data.get("email") or "").strip().lower()
@@ -53,6 +62,13 @@ def inst_login():
 
     if not email or not password:
         return jsonify({"error": "E-mail e senha são obrigatórios"}), 400
+
+    # ── Verificar bloqueio de conta ───────────────────────────────────────────
+    lockout_key = f"inst:{email}"
+    lockout = get_lockout_seconds(lockout_key)
+    if lockout > 0:
+        mins = (lockout + 59) // 60
+        return jsonify({"error": f"Conta temporariamente bloqueada. Tente novamente em {mins} minuto(s)."}), 429
 
     try:
         conn = get_connection()
@@ -64,20 +80,22 @@ def inst_login():
         inst = cur.fetchone()
         cur.close()
         conn.close()
-    except Exception as e:
-        return jsonify({"error": "Serviço indisponível"}), 500
+    except Exception:
+        return jsonify({"error": "Serviço indisponível. Tente novamente."}), 500
 
-    if not inst:
-        return jsonify({"error": "Instituição não encontrada com este e-mail"}), 401
-
-    if not inst["password_hash"]:
-        return jsonify({"error": "Senha não configurada. Contate o administrador do GeneLink."}), 401
+    if not inst or not inst["password_hash"]:
+        record_failed_login(lockout_key)
+        return jsonify({"error": "E-mail ou senha incorretos"}), 401
 
     if not bcrypt.checkpw(password.encode("utf-8"), inst["password_hash"].encode("utf-8")):
+        record_failed_login(lockout_key)
         return jsonify({"error": "E-mail ou senha incorretos"}), 401
 
     if not inst["is_verified"]:
-        return jsonify({"error": "Instituição aguardando aprovação pelo GeneLink. Você receberá um e-mail quando for aprovada."}), 403
+        return jsonify({"error": "Instituição aguardando aprovação. Você receberá um e-mail quando for aprovada."}), 403
+
+    # Login bem-sucedido
+    clear_failed_logins(lockout_key)
 
     token = generate_inst_token(inst["id"])
     inst_dict = {
@@ -94,7 +112,13 @@ def inst_login():
         "website": inst["website"],
     }
     resp = make_response(jsonify({"token": token, "institution": inst_dict}))
-    resp.set_cookie(INST_COOKIE, token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="Lax")
+    resp.set_cookie(
+        INST_COOKIE, token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        secure=_IS_PRODUCTION,
+        samesite="Strict" if _IS_PRODUCTION else "Lax",
+    )
     return resp
 
 
@@ -121,8 +145,8 @@ def inst_me():
         if isinstance(d.get("is_verified"), int):
             d["is_verified"] = bool(d["is_verified"])
         return jsonify(d)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Erro ao carregar dados da instituição"}), 500
 
 
 @inst_auth_bp.route("/institutions/logout", methods=["POST"])
