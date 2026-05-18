@@ -61,9 +61,8 @@ def inst_login():
     password = (data.get("password") or "").strip()
 
     if not email or not password:
-        return jsonify({"error": "E-mail e senha são obrigatórios"}), 400
+        return jsonify({"error": "E-mail e senha sao obrigatorios"}), 400
 
-    # ── Verificar bloqueio de conta ───────────────────────────────────────────
     lockout_key = f"inst:{email}"
     lockout = get_lockout_seconds(lockout_key)
     if lockout > 0:
@@ -81,7 +80,7 @@ def inst_login():
         cur.close()
         conn.close()
     except Exception:
-        return jsonify({"error": "Serviço indisponível. Tente novamente."}), 500
+        return jsonify({"error": "Servico indisponivel. Tente novamente."}), 500
 
     if not inst or not inst["password_hash"]:
         record_failed_login(lockout_key)
@@ -92,9 +91,8 @@ def inst_login():
         return jsonify({"error": "E-mail ou senha incorretos"}), 401
 
     if not inst["is_verified"]:
-        return jsonify({"error": "Instituição aguardando aprovação. Você receberá um e-mail quando for aprovada."}), 403
+        return jsonify({"error": "Instituicao aguardando aprovacao. Voce recebera um e-mail quando for aprovada."}), 403
 
-    # Login bem-sucedido
     clear_failed_logins(lockout_key)
 
     token = generate_inst_token(inst["id"])
@@ -140,13 +138,13 @@ def inst_me():
         cur.close()
         conn.close()
         if not inst:
-            return jsonify({"error": "Instituição não encontrada"}), 404
+            return jsonify({"error": "Instituicao nao encontrada"}), 404
         d = dict(inst)
         if isinstance(d.get("is_verified"), int):
             d["is_verified"] = bool(d["is_verified"])
         return jsonify(d)
     except Exception:
-        return jsonify({"error": "Erro ao carregar dados da instituição"}), 500
+        return jsonify({"error": "Erro ao carregar dados da instituicao"}), 500
 
 
 @inst_auth_bp.route("/institutions/logout", methods=["POST"])
