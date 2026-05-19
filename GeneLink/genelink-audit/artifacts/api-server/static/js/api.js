@@ -85,6 +85,7 @@ function renderNavbar(activePage) {
     { href: BASE + "/forum",        label: "Fórum",            icon: "💬" },
     { href: BASE + "/preprints",    label: "Pré-publicações",  icon: "📄" },
     { href: BASE + "/chat",         label: "Chat",             icon: "✉️"  },
+    { href: BASE + "/dm",           label: "Mensagens",        icon: "💌", badge: true },
     { href: BASE + "/institucional",label: "Instituições",     icon: "🏛️" },
     { href: BASE + "/canais",       label: "Canais",           icon: "📡" },
     { href: BASE + "/recursos",     label: "Recursos",         icon: "📚" },
@@ -99,6 +100,7 @@ function renderNavbar(activePage) {
     `<a href="${p.href}" class="gl-drawer-item${activePage === p.href ? " active" : ""}">
       <span class="gl-drawer-icon">${p.icon}</span>
       <span>${p.label}</span>
+      ${p.badge ? `<span id="dm-nav-badge" style="display:none;background:var(--accent);color:#fff;border-radius:20px;font-size:.65rem;font-weight:700;padding:1px 6px;margin-left:auto">0</span>` : ""}
     </a>`
   ).join("");
 

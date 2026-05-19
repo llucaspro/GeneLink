@@ -42,6 +42,7 @@ async function checkAdminAccess() {
       if (act.total_preprints != null) document.getElementById("s-preprints").textContent = act.total_preprints;
       renderActivityFeed(act);
     }
+    loadFlagsMini();
   } catch {
     document.getElementById("access-denied").style.display = "block";
   }
@@ -49,7 +50,7 @@ async function checkAdminAccess() {
 
 // ── Tab switching ──────────────────────────────────────────────────────────────
 
-const TAB_ORDER = ["overview", "users", "institutions", "forum", "preprints"];
+const TAB_ORDER = ["overview", "users", "institutions", "forum", "preprints", "flags"];
 
 function switchTab(name) {
   _activeTab = name;
@@ -64,6 +65,96 @@ function switchTab(name) {
   if (name === "institutions") loadInstitutions();
   if (name === "forum")        loadForumPosts();
   if (name === "preprints")    loadAdminPreprints();
+  if (name === "flags")        loadFlags(false);
+}
+
+// ── Moderation Flags ───────────────────────────────────────────────────────────
+
+async function loadFlags(resolved) {
+  const box = document.getElementById("flags-list");
+  if (box) box.innerHTML = '<div class="loading-state"><div class="spinner spinner-dark"></div></div>';
+  try {
+    const res  = await apiFetch(`/admin/flags?resolved=${resolved ? "true" : "false"}`);
+    const data = await res.json();
+    const flags = data.flags || [];
+
+    // Update tab badge with pending count
+    if (!resolved) {
+      const badge = document.getElementById("flags-tab-badge");
+      if (badge) {
+        badge.textContent = flags.length;
+        badge.style.display = flags.length > 0 ? "inline" : "none";
+      }
+    }
+
+    if (box) {
+      if (!flags.length) {
+        box.innerHTML = `<div style="padding:32px;text-align:center;color:var(--text-muted)">
+          ${resolved ? "Nenhum alerta resolvido." : "✅ Nenhum alerta de moderação pendente."}
+        </div>`;
+        return;
+      }
+      box.innerHTML = flags.map(f => `
+        <div style="border:1px solid ${f.resolved ? "#d1fae5" : "#fecaca"};border-radius:10px;padding:14px 16px;margin-top:12px;background:${f.resolved ? "#f0fdf4" : "#fff7f7"}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+            <div>
+              <span style="background:${f.resolved ? "#d1fae5" : "#fecaca"};color:${f.resolved ? "#065f46" : "#991b1b"};border-radius:20px;font-size:.7rem;padding:2px 8px;font-weight:700">
+                ${f.type.toUpperCase()}
+              </span>
+              <span style="margin-left:8px;font-size:.78rem;color:var(--text-muted)">
+                @${f.sender_username || "—"} · ${fmtDate(f.created_at)}
+              </span>
+            </div>
+            ${!f.resolved ? `<button class="btn btn-sm" style="background:#16a34a;color:#fff;border:none;font-size:.78rem;padding:4px 12px" onclick="resolveFlag(${f.id})">✓ Marcar resolvido</button>` : `<span style="color:#16a34a;font-size:.8rem;font-weight:700">✓ Resolvido</span>`}
+          </div>
+          <div style="margin-top:10px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:.88rem;color:var(--text);word-break:break-word">
+            ${esc(f.content)}
+          </div>
+          <div style="margin-top:6px;font-size:.75rem;color:#b91c1c">
+            Motivo: ${esc(f.reason || "—")}
+          </div>
+        </div>
+      `).join("");
+    }
+  } catch {
+    if (box) box.innerHTML = '<div style="padding:20px;color:var(--danger)">Erro ao carregar alertas.</div>';
+  }
+}
+
+async function resolveFlag(id) {
+  try {
+    await apiFetch(`/admin/flags/${id}/resolve`, { method: "POST" });
+    loadFlags(false);
+  } catch { alert("Erro ao resolver alerta."); }
+}
+
+async function loadFlagsMini() {
+  try {
+    const res  = await apiFetch("/admin/flags?resolved=false");
+    const data = await res.json();
+    const flags = (data.flags || []).slice(0, 3);
+    const box = document.getElementById("feed-flags");
+    if (!box) return;
+    const badge = document.getElementById("flags-tab-badge");
+    if (badge && data.flags) {
+      badge.textContent = data.flags.length;
+      badge.style.display = data.flags.length > 0 ? "inline" : "none";
+    }
+    if (!flags.length) {
+      box.innerHTML = '<div style="font-size:.85rem;color:var(--text-muted);padding:8px 0">✅ Nenhum alerta pendente.</div>';
+      return;
+    }
+    box.innerHTML = flags.map(f => `
+      <div class="feed-item">
+        <div class="feed-icon" style="background:#fee2e2">🚨</div>
+        <div class="feed-main">
+          <div class="feed-title">@${esc(f.sender_username || "?")} — ${esc(f.type)}</div>
+          <div class="feed-meta">${esc((f.content || "").slice(0,60))}${(f.content||"").length>60?"…":""}</div>
+          <div class="feed-meta" style="color:#b91c1c">Motivo: ${esc(f.reason || "—")}</div>
+        </div>
+      </div>
+    `).join("");
+  } catch {}
 }
 
 // ── Activity Feed (Visão Geral) ────────────────────────────────────────────────

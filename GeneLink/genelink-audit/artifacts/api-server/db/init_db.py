@@ -144,6 +144,32 @@ CREATE TABLE IF NOT EXISTS preprint_reviews (
     rating INTEGER,
     created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE TABLE IF NOT EXISTS private_conversations (
+    id SERIAL PRIMARY KEY,
+    user1_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user2_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user1_id, user2_id)
+);
+CREATE TABLE IF NOT EXISTS private_messages (
+    id SERIAL PRIMARY KEY,
+    conversation_id INTEGER REFERENCES private_conversations(id) ON DELETE CASCADE,
+    sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_flagged BOOLEAN DEFAULT FALSE,
+    read_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS admin_flags (
+    id SERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    sender_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    reference_id INTEGER,
+    reason TEXT,
+    resolved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 """
 
 SCHEMA_SQLITE = """
@@ -288,6 +314,32 @@ CREATE TABLE IF NOT EXISTS preprint_reviews (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     rating INTEGER,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS private_conversations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user1_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user2_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(user1_id, user2_id)
+);
+CREATE TABLE IF NOT EXISTS private_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id INTEGER REFERENCES private_conversations(id) ON DELETE CASCADE,
+    sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_flagged INTEGER DEFAULT 0,
+    read_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS admin_flags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    sender_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    reference_id INTEGER,
+    reason TEXT,
+    resolved INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
 );
 """

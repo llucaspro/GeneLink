@@ -35,6 +35,7 @@ from routes.admin import admin_bp
 from routes.inst_auth import inst_auth_bp
 from routes.partnerships import partnerships_bp
 from routes.preprints import preprints_bp
+from routes.dm import dm_bp
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("SESSION_SECRET", "genelink-dev-secret-2024")
@@ -50,6 +51,7 @@ app.register_blueprint(admin_bp, url_prefix="/api")
 app.register_blueprint(inst_auth_bp, url_prefix="/api")
 app.register_blueprint(partnerships_bp, url_prefix="/api")
 app.register_blueprint(preprints_bp, url_prefix="/api")
+app.register_blueprint(dm_bp, url_prefix="/api")
 
 app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix="/gl")
 
@@ -172,6 +174,18 @@ def preprint_criar():
 @page_login_required
 def preprint_view(preprint_id):
     return render_template("preprint.html")
+
+
+@app.route("/dm")
+@page_login_required
+def dm():
+    return render_template("dm.html")
+
+
+@app.route("/user/<username>")
+@page_login_required
+def user_public(username):
+    return render_template("user_public.html")
 
 
 # ── Chat REST API (polling-based, reliable on all hosting) ──────────────────

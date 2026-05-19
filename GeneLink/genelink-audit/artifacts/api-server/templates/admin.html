@@ -137,6 +137,7 @@ tr:hover td { background:#f8faff; }
       <div class="tab-link" onclick="switchTab('institutions')">🏛️ Instituições</div>
       <div class="tab-link" onclick="switchTab('forum')">📋 Fórum</div>
       <div class="tab-link" onclick="switchTab('preprints')">🔬 Pré-publicações</div>
+      <div class="tab-link" id="flags-tab-link" onclick="switchTab('flags')">🚨 Moderação <span id="flags-tab-badge" style="display:none;background:#ef4444;color:#fff;border-radius:20px;font-size:.68rem;padding:1px 7px;margin-left:4px">0</span></div>
     </div>
 
     <!-- ── Tab: Visão Geral ─────────────────────────────────── -->
@@ -166,6 +167,33 @@ tr:hover td { background:#f8faff; }
           <button class="btn btn-outline btn-sm" onclick="switchTab('users')">👤 Gerenciar Usuários</button>
           <button class="btn btn-outline btn-sm" onclick="switchTab('preprints')">🔬 Moderar Pré-publicações</button>
           <button class="btn btn-outline btn-sm" onclick="switchTab('forum')">📋 Moderar Fórum</button>
+          <button class="btn btn-sm" style="background:#ef4444;color:#fff;border:none" onclick="switchTab('flags')">🚨 Ver Alertas de Moderação</button>
+        </div>
+      </div>
+
+      <!-- Moderation mini-feed on overview -->
+      <div class="ov-card" style="margin-top:20px;border-color:#fecaca">
+        <h3 style="color:#dc2626">🚨 Alertas de Moderação Recentes</h3>
+        <div id="feed-flags"><div class="loading-state"><div class="spinner spinner-dark"></div></div></div>
+        <a href="#" onclick="switchTab('flags')" style="font-size:.8rem;color:#dc2626;display:block;margin-top:12px">Ver todos os alertas →</a>
+      </div>
+    </div>
+
+    <!-- ── Tab: Moderação ──────────────────────────────────── -->
+    <div id="tab-flags" class="tab-panel">
+      <div class="card">
+        <div class="card-header" style="border-left:4px solid #ef4444">
+          <h2>🚨 Alertas de Moderação Automática</h2>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-sm btn-outline" onclick="loadFlags(false)" id="btn-flags-pending">Pendentes</button>
+            <button class="btn btn-sm btn-outline" onclick="loadFlags(true)" id="btn-flags-resolved">Resolvidos</button>
+          </div>
+        </div>
+        <div style="padding:14px 16px;background:#fff7f7;border-bottom:1px solid #fecaca;font-size:.82rem;color:#7f1d1d">
+          ⚠ Mensagens abaixo foram detectadas automaticamente como possivelmente contendo palavrões, conteúdo suspeito ou criminoso. Revise e marque como resolvido quando verificado.
+        </div>
+        <div id="flags-list" style="padding:0 16px 16px">
+          <div class="loading-state"><div class="spinner spinner-dark"></div></div>
         </div>
       </div>
     </div>
