@@ -22,7 +22,8 @@ async function loadPost() {
 
     document.getElementById("post-title").textContent = post.title;
     document.getElementById("post-author-initials").textContent = post.avatar_initials || "?";
-    document.getElementById("post-author").textContent = post.username;
+    const authorEl = document.getElementById("post-author");
+    authorEl.innerHTML = `<a href="/gl/user/${post.username}" style="color:var(--primary);text-decoration:none;font-weight:700" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${post.username}</a>`;
     document.getElementById("post-institution").textContent = post.institution || "";
     document.getElementById("post-date").textContent = formatDateTime(post.created_at);
     document.getElementById("post-category").textContent = post.category;
@@ -51,7 +52,7 @@ function renderComments(comments) {
       <div class="avatar-sm" style="width:32px;height:32px;font-size:.8rem;flex-shrink:0">${escHtml(c.avatar_initials || "?")}</div>
       <div style="flex:1">
         <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
-          <strong style="font-size:.875rem">${escHtml(c.username)}</strong>
+          <a href="/gl/user/${escHtml(c.username)}" style="font-size:.875rem;font-weight:700;color:var(--primary);text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(c.username)}</a>
           ${c.institution ? `<span style="font-size:.78rem;color:var(--text-muted)">${escHtml(c.institution)}</span>` : ""}
           <span style="font-size:.78rem;color:var(--text-light);margin-left:auto">${timeAgo(c.created_at)}</span>
         </div>
