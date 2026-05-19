@@ -182,6 +182,12 @@ def dm():
     return render_template("dm.html")
 
 
+@app.route("/user-search")
+@page_login_required
+def user_search():
+    return render_template("user_search.html")
+
+
 @app.route("/user/<username>")
 @page_login_required
 def user_public(username):
