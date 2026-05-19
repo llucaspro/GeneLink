@@ -88,7 +88,6 @@ function renderNavbar(activePage) {
     { href: BASE + "/dm",           label: "Mensagens",        icon: "💌", badge: true },
     { href: BASE + "/institucional",label: "Instituições",     icon: "🏛️" },
     { href: BASE + "/canais",       label: "Canais",           icon: "📡" },
-    { href: BASE + "/user-search", label: "Pesquisadores",     icon: "👥" },
     { href: BASE + "/recursos",     label: "Recursos",         icon: "📚" },
   ];
   if (user && user.is_admin) {
@@ -123,6 +122,22 @@ function renderNavbar(activePage) {
           <div style="font-size:.75rem;opacity:.65">@${user.username}${user.is_verified ? ' · ✓ Verificado' : ''}</div>
         </div>
       </div>` : ""}
+
+      <!-- Busca de Pesquisadores inline -->
+      <div class="gl-drawer-search" id="gl-drawer-search-wrap">
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;">
+          <span style="opacity:.5;font-size:.85rem">🔍</span>
+          <input
+            id="gl-drawer-search-input"
+            type="text"
+            placeholder="Buscar pesquisadores…"
+            autocomplete="off"
+            style="background:transparent;border:none;outline:none;color:inherit;font-size:.82rem;width:100%;min-width:0"
+          >
+        </div>
+        <div id="gl-drawer-search-results" style="display:none;margin-top:6px;max-height:220px;overflow-y:auto;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)"></div>
+      </div>
+
       <nav class="gl-drawer-nav">${drawerItems}</nav>
       <div class="gl-drawer-footer">
         <button class="gl-drawer-signout" onclick="logout()">↩ Sair da conta</button>
@@ -153,11 +168,82 @@ function _glOpenDrawer() {
   document.getElementById("gl-drawer").classList.add("open");
   document.getElementById("gl-drawer-overlay").classList.add("open");
   document.body.style.overflow = "hidden";
+  // Focus the search input when drawer opens
+  setTimeout(() => {
+    const inp = document.getElementById("gl-drawer-search-input");
+    if (inp) inp.focus();
+  }, 200);
 }
 function _glCloseDrawer() {
   document.getElementById("gl-drawer").classList.remove("open");
   document.getElementById("gl-drawer-overlay").classList.remove("open");
   document.body.style.overflow = "";
+  // Clear search on close
+  const inp = document.getElementById("gl-drawer-search-input");
+  const res = document.getElementById("gl-drawer-search-results");
+  if (inp) inp.value = "";
+  if (res) { res.style.display = "none"; res.innerHTML = ""; }
+}
+
+// ── Drawer inline user search ─────────────────────────────────────────────────
+
+let _drawerSearchTimer = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.addEventListener("input", (e) => {
+    if (e.target && e.target.id === "gl-drawer-search-input") {
+      _handleDrawerSearch(e.target.value.trim());
+    }
+  });
+});
+
+function _handleDrawerSearch(q) {
+  const resultsEl = document.getElementById("gl-drawer-search-results");
+  if (!resultsEl) return;
+  clearTimeout(_drawerSearchTimer);
+
+  if (q.length < 2) {
+    resultsEl.style.display = "none";
+    resultsEl.innerHTML = "";
+    return;
+  }
+
+  resultsEl.style.display = "block";
+  resultsEl.innerHTML = `<div style="padding:10px;text-align:center;font-size:.78rem;opacity:.5">Buscando…</div>`;
+
+  _drawerSearchTimer = setTimeout(async () => {
+    try {
+      const res = await apiFetch(`/users/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      const users = data.users || [];
+
+      if (users.length === 0) {
+        resultsEl.innerHTML = `<div style="padding:10px;text-align:center;font-size:.78rem;opacity:.5">Nenhum pesquisador encontrado</div>`;
+        return;
+      }
+
+      resultsEl.innerHTML = users.slice(0, 6).map(u => {
+        const ini = (u.avatar_initials || u.username.slice(0, 2)).toUpperCase();
+        return `
+          <a href="${BASE}/user/${u.username}" onclick="_glCloseDrawer()"
+             style="display:flex;align-items:center;gap:9px;padding:8px 10px;text-decoration:none;color:inherit;border-bottom:1px solid rgba(255,255,255,.06);transition:background .15s"
+             onmouseover="this.style.background='rgba(255,255,255,.08)'"
+             onmouseout="this.style.background='transparent'">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--primary,#1565c0);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">${ini}</div>
+            <div style="overflow:hidden">
+              <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.full_name || u.username}</div>
+              <div style="font-size:.72rem;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@${u.username}${u.institution ? ' · ' + u.institution : ''}</div>
+            </div>
+          </a>`;
+      }).join("") + (users.length > 6 ? `
+        <a href="${BASE}/user-search?q=${encodeURIComponent(q)}" onclick="_glCloseDrawer()"
+           style="display:block;text-align:center;padding:8px;font-size:.75rem;color:var(--primary,#90caf9);text-decoration:none;opacity:.8">
+          Ver todos os ${users.length} resultados →
+        </a>` : "");
+    } catch {
+      resultsEl.innerHTML = `<div style="padding:10px;text-align:center;font-size:.78rem;opacity:.5">Erro ao buscar</div>`;
+    }
+  }, 350);
 }
 
 async function logout() {
