@@ -88,6 +88,7 @@ function renderNavbar(activePage) {
     { href: BASE + "/dm",           label: "Mensagens",        icon: "💌", badge: true },
     { href: BASE + "/institucional",label: "Instituições",     icon: "🏛️" },
     { href: BASE + "/canais",       label: "Canais",           icon: "📡" },
+    { href: BASE + "/user-search", label: "Pesquisadores",     icon: "👥" },
     { href: BASE + "/recursos",     label: "Recursos",         icon: "📚" },
   ];
   if (user && user.is_admin) {
