@@ -19,6 +19,12 @@ function instLogout() {
   window.location.href = '/gl/login#instituicao';
 }
 
+function repeatInstTutorial() {
+  localStorage.removeItem('gl_tut_inst_v1');
+  localStorage.removeItem('gl_tut_researcher_v1');
+  window.location.href = '/gl/inst-dashboard?tour=1';
+}
+
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
   injectInstNavbar('/gl/inst-dashboard');

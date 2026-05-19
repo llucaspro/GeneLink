@@ -1,8 +1,9 @@
 /*!
- * GeneLink Tutorial System v2
+ * GeneLink Tutorial System v3
  * - ?tour=1 na URL: sempre mostra (ignora localStorage)
  * - Sem ?tour=1: mostra só na primeira visita (localStorage)
  * - Navegação por teclado: ← → Enter Esc
+ * - Drawer: aberto automaticamente nos passos de navegação lateral
  */
 (function () {
   const IS_INST    = window.location.pathname.includes('inst-dashboard');
@@ -10,10 +11,7 @@
   const params      = new URLSearchParams(window.location.search);
   const FORCE       = params.get('tour') === '1';
 
-  // Limpa ?tour=1 da URL sem recarregar
   if (FORCE) history.replaceState(null, '', window.location.pathname);
-
-  // Sem força e já viu → sai
   if (!FORCE && localStorage.getItem(STORAGE_KEY)) return;
 
   // ── CSS injetado ─────────────────────────────────────────────────────────
@@ -89,22 +87,66 @@
   `;
   document.head.appendChild(css);
 
-  // ── Steps ─────────────────────────────────────────────────────────────────
+  // ── Helpers de drawer ────────────────────────────────────────────────────
+  // Usam a função global de api.js se disponível; caso contrário manipulam
+  // o DOM diretamente (failsafe para qualquer ordem de carregamento).
+  function drawerOpen() {
+    if (typeof window._glOpenDrawer === 'function') {
+      window._glOpenDrawer();
+    } else {
+      const d = document.getElementById('gl-drawer');
+      const o = document.getElementById('gl-drawer-overlay');
+      if (d) d.classList.add('open');
+      if (o) o.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+  function drawerClose() {
+    if (typeof window._glCloseDrawer === 'function') {
+      window._glCloseDrawer();
+    } else {
+      const d = document.getElementById('gl-drawer');
+      const o = document.getElementById('gl-drawer-overlay');
+      if (d) d.classList.remove('open');
+      if (o) o.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  }
+
+  // ── Steps ────────────────────────────────────────────────────────────────
+  //
+  // action:'openDrawer'  → abre o drawer ao entrar neste passo e fecha ao sair
+  //                         (a menos que o próximo passo também abra o drawer)
+  // action:'closeDrawer' → fecha o drawer ao entrar neste passo
+  //
   const RESEARCHER = [
     { sel:null, icon:'👋', title:'Bem-vindo ao GeneLink!',
       desc:'Esta é a sua base de pesquisa genômica colaborativa. Vamos conhecer o que cada seção faz — leva menos de 1 minuto!' },
-    { sel:'a[href="/gl/search"]', icon:'🔬', title:'Pesquisar Genes',
-      desc:'Clique aqui para buscar genes, variantes genéticas e encontrar outros pesquisadores por área de estudo ou instituição.' },
-    { sel:'a[href="/gl/forum"]', icon:'💬', title:'Fórum Científico',
-      desc:'Crie discussões e responda perguntas da comunidade científica. Troque conhecimento com pesquisadores do mundo todo.' },
-    { sel:'a[href="/gl/chat"]', icon:'💌', title:'Chat ao Vivo',
-      desc:'Converse em tempo real com outros pesquisadores. Tire dúvidas, faça conexões e colabore com mais agilidade.' },
-    { sel:'a[href="/gl/canais"]', icon:'📡', title:'Canais Temáticos',
-      desc:'Grupos focados em temas específicos — genômica, bioinformática, CRISPR e mais. Entre nos canais do seu interesse!' },
-    { sel:'a[href="/gl/preprints"]', icon:'📄', title:'Preprints',
-      desc:'Publique e leia artigos científicos preliminares antes da revisão por pares. Compartilhe sua pesquisa com rapidez.' },
+
+    // Passos 2–6: os links estão no drawer (que vem primeiro no DOM).
+    // Abrimos o drawer para que o destaque fique visível.
+    { sel:'a[href="/gl/search"]',   icon:'🔬', title:'Pesquisar Genes',
+      desc:'Clique aqui para buscar genes, variantes genéticas e encontrar outros pesquisadores por área de estudo ou instituição.',
+      action:'openDrawer' },
+    { sel:'a[href="/gl/forum"]',    icon:'💬', title:'Fórum Científico',
+      desc:'Crie discussões e responda perguntas da comunidade científica. Troque conhecimento com pesquisadores do mundo todo.',
+      action:'openDrawer' },
+    { sel:'a[href="/gl/chat"]',     icon:'💌', title:'Chat ao Vivo',
+      desc:'Converse em tempo real com outros pesquisadores. Tire dúvidas, faça conexões e colabore com mais agilidade.',
+      action:'openDrawer' },
+    { sel:'a[href="/gl/canais"]',   icon:'📡', title:'Canais Temáticos',
+      desc:'Grupos focados em temas específicos — genômica, bioinformática, CRISPR e mais. Entre nos canais do seu interesse!',
+      action:'openDrawer' },
+    { sel:'a[href="/gl/preprints"]',icon:'📄', title:'Preprints',
+      desc:'Publique e leia artigos científicos preliminares antes da revisão por pares. Compartilhe sua pesquisa com rapidez.',
+      action:'openDrawer' },
+
+    // Passo 7: visão geral fica na área principal — fecha o drawer.
     { sel:'.dash-tabs', icon:'📊', title:'Suas Abas',
-      desc:'Navegue entre "Visão Geral" com métricas, "Fórum" com suas postagens e "Parcerias" com suas colaborações.' },
+      desc:'Navegue entre "Visão Geral" com métricas, "Fórum" com suas postagens e "Parcerias" com suas colaborações.',
+      action:'closeDrawer' },
+
+    // Passo 8: avatar no navbar (sempre visível).
     { sel:'.nav-avatar,.nav-user-btn,.avatar-circle,[data-nav-profile]', icon:'👤', title:'Seu Perfil',
       desc:'Clique no seu avatar para editar perfil, área de pesquisa e bio. Em Perfil você também pode rever este tutorial.' },
   ];
@@ -112,19 +154,28 @@
   const INST = [
     { sel:null, icon:'🏛️', title:'Bem-vindo ao Painel Institucional!',
       desc:'Este é o centro de gestão da sua instituição no GeneLink. Vamos conhecer cada seção — leva menos de 1 minuto!' },
-    // action:'openDrawer' → tutorial abre o drawer automaticamente neste passo
+
+    // Passo 2: explica o drawer e já o abre automaticamente.
     { sel:'.gl-menu-btn,.inst-drawer-toggle,[data-drawer-toggle],.nav-drawer-btn,.drawer-btn',
       icon:'☰', title:'Menu de Navegação',
       desc:'Este botão abre o menu lateral com todas as seções disponíveis para sua conta institucional.',
-      action: 'openDrawer' },
-    { sel:'a[href="/gl/parcerias"]', icon:'🤝', title:'Parcerias',
-      desc:'Publique vagas, projetos e oportunidades de colaboração. Pesquisadores poderão se candidatar diretamente pelo GeneLink.' },
+      action:'openDrawer' },
+
+    // Passos 3–4: links dentro do drawer — mantém aberto.
+    { sel:'a[href="/gl/parcerias"]',       icon:'🤝', title:'Parcerias',
+      desc:'Publique vagas, projetos e oportunidades de colaboração. Pesquisadores poderão se candidatar diretamente pelo GeneLink.',
+      action:'openDrawer' },
     { sel:'a[href="/gl/inst-candidates"]', icon:'🎓', title:'Candidatos',
-      desc:'Veja todos os pesquisadores que se candidataram às suas parcerias, com nome, área de estudo e mensagem de interesse.' },
+      desc:'Veja todos os pesquisadores que se candidataram às suas parcerias, com nome, área de estudo e mensagem de interesse.',
+      action:'openDrawer' },
+
+    // Passos 5–6: conteúdo na área principal — fecha o drawer.
     { sel:'.metric-row', icon:'📈', title:'Métricas da Instituição',
-      desc:'Acompanhe em tempo real: membros vinculados, parcerias ativas e candidatos recebidos pela sua instituição.' },
-    { sel:'.dash-tabs', icon:'📋', title:'Abas do Painel',
-      desc:'Navegue entre "Visão Geral", "Membros" com pesquisadores vinculados e "Biblioteca" com seus documentos de pesquisa.' },
+      desc:'Acompanhe em tempo real: membros vinculados, parcerias ativas e candidatos recebidos pela sua instituição.',
+      action:'closeDrawer' },
+    { sel:'.dash-tabs',  icon:'📋', title:'Abas do Painel',
+      desc:'Navegue entre "Visão Geral", "Membros" com pesquisadores vinculados e "Biblioteca" com seus documentos de pesquisa.',
+      action:'closeDrawer' },
   ];
 
   const steps = IS_INST ? INST : RESEARCHER;
@@ -141,30 +192,34 @@
     return null;
   }
 
-  // Executa a ação opcional ao sair de um passo
-  function leaveStep(i) {
-    const s = steps[i];
-    if (!s) return;
-    if (s.action === 'openDrawer') {
-      if (typeof _glCloseDrawer === 'function') _glCloseDrawer();
+  // Executado ao SAIR de um passo
+  function leaveStep(fromIdx, toIdx) {
+    const s = steps[fromIdx];
+    if (!s || s.action !== 'openDrawer') return;
+    // Só fecha se o próximo passo NÃO abre o drawer também
+    const next = steps[toIdx];
+    if (!next || next.action !== 'openDrawer') {
+      drawerClose();
     }
   }
 
-  // Executa a ação opcional ao entrar em um passo
+  // Executado ao ENTRAR em um passo
   function enterStep(i) {
     const s = steps[i];
     if (!s) return;
     if (s.action === 'openDrawer') {
-      if (typeof _glOpenDrawer === 'function') {
-        // Pequeno atraso para garantir que o DOM do navbar já foi injetado
-        setTimeout(_glOpenDrawer, 150);
-      }
+      // Pequeno delay garante que o DOM do navbar já foi injetado
+      setTimeout(drawerOpen, 120);
+    } else if (s.action === 'closeDrawer') {
+      drawerClose();
     }
   }
 
   function render(i) {
     const s = steps[i], last = i === steps.length - 1;
-    const dots = steps.map((_,j)=>`<button class="gt-dot${j===i?' on':''}" onclick="window.__glTut.go(${j})"></button>`).join('');
+    const dots = steps.map((_,j) =>
+      `<button class="gt-dot${j===i?' on':''}" onclick="window.__glTut.go(${j})"></button>`
+    ).join('');
     card.innerHTML = `
       <div class="gt-head">
         <span class="gt-counter">${i+1} / ${steps.length}</span>
@@ -203,24 +258,29 @@
     if (!el) { hl.className = 'no-el on'; return; }
     const r=el.getBoundingClientRect(), p=7;
     hl.className = 'on';
-    hl.style.top   = (r.top-p)+'px';  hl.style.left  = (r.left-p)+'px';
-    hl.style.width = (r.width+p*2)+'px'; hl.style.height = (r.height+p*2)+'px';
+    hl.style.top    = (r.top-p)+'px';
+    hl.style.left   = (r.left-p)+'px';
+    hl.style.width  = (r.width+p*2)+'px';
+    hl.style.height = (r.height+p*2)+'px';
   }
 
   function show(i) {
-    // Executa ação de saída do passo atual antes de trocar
-    if (i !== cur) leaveStep(cur);
-
+    const prev = cur;
     cur = i;
-    const s = steps[i];
-    const el = getEl(s.sel);
 
-    // Executa ação de entrada do novo passo
+    // Ação de saída (transições de passo diferentes)
+    if (i !== prev) leaveStep(prev, i);
+
+    // Ação de entrada
     enterStep(i);
 
+    const el = getEl(steps[i].sel);
     render(i);
-    if (el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
-    setTimeout(() => { placeHl(el); place(el); }, el ? 200 : 0);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+
+    // Reposiciona highlight depois do drawer animado (300ms de transição CSS)
+    const delay = steps[i].action === 'openDrawer' ? 420 : (el ? 200 : 0);
+    setTimeout(() => { placeHl(el); place(el); }, delay);
   }
 
   window.__glTut = {
@@ -229,8 +289,7 @@
     go(i)  { show(i); },
     done() {
       localStorage.setItem(STORAGE_KEY, '1');
-      // Fecha o drawer caso esteja aberto pelo tutorial
-      leaveStep(cur);
+      drawerClose();   // garante que o drawer fecha ao terminar/pular
       [hl, card].forEach(el => {
         if (!el) return;
         el.style.opacity='0'; el.style.transition='opacity .3s';
