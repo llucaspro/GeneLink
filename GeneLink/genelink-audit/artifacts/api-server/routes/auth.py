@@ -248,3 +248,90 @@ def update_profile():
         return jsonify(dict(user))
     except Exception:
         return jsonify({"error": "Failed to update profile"}), 500
+
+
+@auth_bp.route("/users/search", methods=["GET"])
+@token_required
+def search_users():
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify({"error": "Query must be at least 2 characters"}), 400
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT id, username, full_name, institution, research_area,
+                      avatar_initials, is_verified, created_at
+               FROM users
+               WHERE username ILIKE %s OR full_name ILIKE %s OR institution ILIKE %s
+               ORDER BY
+                 CASE WHEN username ILIKE %s THEN 0 ELSE 1 END,
+                 username
+               LIMIT 30""",
+            (f"%{q}%", f"%{q}%", f"%{q}%", f"{q}%"),
+        )
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        users = []
+        for r in rows:
+            d = dict(r)
+            d["created_at"] = str(d.get("created_at") or "")
+            if isinstance(d.get("is_verified"), int):
+                d["is_verified"] = bool(d["is_verified"])
+            users.append(d)
+        return jsonify({"users": users, "total": len(users)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@auth_bp.route("/users/<username>/profile", methods=["GET"])
+@token_required
+def get_user_public_profile(username):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT id, username, full_name, institution, research_area,
+                      bio, avatar_initials, is_verified, created_at
+               FROM users WHERE username = %s""",
+            (username,),
+        )
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+    except Exception:
+        return jsonify({"error": "Failed to fetch profile"}), 500
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    d = dict(user)
+    d["created_at"] = str(d.get("created_at") or "")
+    if isinstance(d.get("is_verified"), int):
+        d["is_verified"] = bool(d["is_verified"])
+    return jsonify(d)
+
+
+@auth_bp.route("/check-availability", methods=["GET"])
+def check_availability():
+    """Verifica se username ou email já está em uso (sem autenticação)."""
+    username = (request.args.get("username") or "").strip()
+    email = (request.args.get("email") or "").strip().lower()
+
+    if not username and not email:
+        return jsonify({"error": "username or email required"}), 400
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        result = {}
+        if username:
+            cur.execute("SELECT 1 FROM users WHERE username = %s", (username,))
+            result["username_taken"] = cur.fetchone() is not None
+        if email:
+            cur.execute("SELECT 1 FROM users WHERE email = %s", (email,))
+            result["email_taken"] = cur.fetchone() is not None
+        cur.close()
+        conn.close()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
