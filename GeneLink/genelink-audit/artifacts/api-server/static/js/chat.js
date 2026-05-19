@@ -111,7 +111,7 @@ function appendMessage(msg) {
     <div class="avatar-sm" style="width:32px;height:32px;font-size:.78rem;flex-shrink:0;${isMine ? "background:var(--accent)" : ""}">${escHtml(initials)}</div>
     <div class="chat-msg-content" style="${isMine ? "text-align:right" : ""}">
       <div class="chat-msg-header" style="${isMine ? "flex-direction:row-reverse" : ""}">
-        <span class="chat-username">${escHtml(msg.username)}</span>
+        <a href="/gl/user/${escHtml(msg.username)}" class="chat-username" style="color:var(--primary);font-weight:700;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(msg.username)}</a>
         <span class="chat-time">${formatTime(msg.created_at)}</span>
       </div>
       <div class="chat-text" style="${isMine
