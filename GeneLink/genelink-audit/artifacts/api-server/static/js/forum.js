@@ -55,7 +55,7 @@ async function loadPosts() {
               <span class="badge badge-primary">${escHtml(p.category)}</span>
               <span class="user-chip">
                 <span class="avatar-sm">${escHtml(p.avatar_initials || "?")}</span>
-                <strong>${escHtml(p.username)}</strong>
+                <a href="/gl/user/${escHtml(p.username)}" onclick="event.stopPropagation()" style="color:var(--primary);font-weight:700;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(p.username)}</a>
                 ${p.institution ? `<span style="color:var(--text-light)">· ${escHtml(p.institution)}</span>` : ""}
               </span>
               <span>${timeAgo(p.created_at)}</span>
