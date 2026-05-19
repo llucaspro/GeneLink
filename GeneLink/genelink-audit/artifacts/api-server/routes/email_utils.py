@@ -1,11 +1,45 @@
 import os
 import smtplib
+import socket
+import ssl
+import time
+import uuid
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate, make_msgid
+from html.parser import HTMLParser
 
 
-def send_email(to_addr: str, subject: str, html_body: str) -> bool:
-    """Send email via SMTP. Returns True on success, False on failure (logs error)."""
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+class _HTMLToText(HTMLParser):
+    """Strip HTML tags to produce a plain-text fallback."""
+    def __init__(self):
+        super().__init__()
+        self._parts = []
+
+    def handle_data(self, data):
+        stripped = data.strip()
+        if stripped:
+            self._parts.append(stripped)
+
+    def get_text(self):
+        return "\n".join(self._parts)
+
+
+def _html_to_plain(html: str) -> str:
+    parser = _HTMLToText()
+    parser.feed(html)
+    return parser.get_text()
+
+
+# ── Core send function ────────────────────────────────────────────────────────
+
+def send_email(to_addr: str, subject: str, html_body: str, retries: int = 2) -> bool:
+    """
+    Send an email via SMTP. Attempts STARTTLS (port 587) first, then SSL (port 465).
+    Returns True on success, False on failure with detailed error logging.
+    """
     smtp_host = os.environ.get("SMTP_HOST", "")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
     from_addr = os.environ.get("SMTP_FROM", "")
@@ -13,29 +47,110 @@ def send_email(to_addr: str, subject: str, html_body: str) -> bool:
     smtp_pass = os.environ.get("SMTP_PASS", "")
 
     if not smtp_host or not smtp_user or not smtp_pass:
-        print(f"[GeneLink] EMAIL (SMTP not configured) → TO: {to_addr} | SUBJECT: {subject}")
+        print(f"[GeneLink][EMAIL] SMTP not configured — skipping send TO={to_addr} SUBJECT={subject!r}")
         return False
     if not from_addr:
         from_addr = smtp_user
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"]    = f"GeneLink <{from_addr}>"
-        msg["To"]      = to_addr
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
+    plain_body = _html_to_plain(html_body)
 
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+    def _build_message() -> MIMEMultipart:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"]          = subject
+        msg["From"]             = f"GeneLink <{from_addr}>"
+        msg["To"]               = to_addr
+        msg["Date"]             = formatdate(localtime=False)
+        msg["Message-ID"]       = make_msgid(domain=from_addr.split("@")[-1])
+        msg["X-Mailer"]         = "GeneLink Mailer/2.0"
+        # Helps spam filters — allows one-click unsubscribe
+        msg["List-Unsubscribe"] = f"<mailto:{from_addr}?subject=unsubscribe>"
+        msg["Precedence"]       = "bulk"
+        # Attach plain text FIRST (RFC 2046: last part preferred by client)
+        msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+        msg.attach(MIMEText(html_body,  "html",  "utf-8"))
+        return msg
+
+    def _try_starttls(host: str, port: int) -> bool:
+        msg = _build_message()
+        with smtplib.SMTP(host, port, timeout=15) as server:
             server.ehlo()
             server.starttls()
+            server.ehlo()
             server.login(smtp_user, smtp_pass)
             server.sendmail(from_addr, [to_addr], msg.as_string())
-        print(f"[GeneLink] Email sent → {to_addr}")
         return True
-    except Exception as e:
-        print(f"[GeneLink] Email error → {to_addr}: {e}")
-        return False
 
+    def _try_ssl(host: str, port: int = 465) -> bool:
+        context = ssl.create_default_context()
+        msg = _build_message()
+        with smtplib.SMTP_SSL(host, port, context=context, timeout=15) as server:
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(from_addr, [to_addr], msg.as_string())
+        return True
+
+    last_error = None
+    for attempt in range(1, retries + 2):   # retries+1 total attempts
+        try:
+            # Prefer configured port; fall back to SSL on port 465 if it is 587
+            if smtp_port != 465:
+                _try_starttls(smtp_host, smtp_port)
+            else:
+                _try_ssl(smtp_host, smtp_port)
+            print(f"[GeneLink][EMAIL] Sent OK — TO={to_addr} SUBJECT={subject!r} attempt={attempt}")
+            return True
+
+        except smtplib.SMTPAuthenticationError as e:
+            # Auth errors won't be fixed by retrying
+            print(f"[GeneLink][EMAIL] Auth error — check SMTP_USER/SMTP_PASS. TO={to_addr} error={e}")
+            return False
+
+        except smtplib.SMTPRecipientsRefused as e:
+            # Recipient rejected by server (common with institutional/strict domains)
+            print(
+                f"[GeneLink][EMAIL] Recipient refused — TO={to_addr} codes={e.recipients}. "
+                "The domain may block external senders or require SPF/DKIM alignment."
+            )
+            return False
+
+        except smtplib.SMTPSenderRefused as e:
+            print(f"[GeneLink][EMAIL] Sender refused — FROM={from_addr} code={e.smtp_code} msg={e.smtp_error}")
+            return False
+
+        except smtplib.SMTPDataError as e:
+            print(f"[GeneLink][EMAIL] Data error (spam filter?) — code={e.smtp_code} msg={e.smtp_error} TO={to_addr}")
+            # Try SSL fallback if we were using STARTTLS
+            if smtp_port != 465:
+                try:
+                    _try_ssl(smtp_host, 465)
+                    print(f"[GeneLink][EMAIL] SSL fallback OK — TO={to_addr}")
+                    return True
+                except Exception as ssl_err:
+                    print(f"[GeneLink][EMAIL] SSL fallback also failed — {ssl_err}")
+            return False
+
+        except (smtplib.SMTPConnectError, socket.timeout, OSError) as e:
+            last_error = e
+            print(f"[GeneLink][EMAIL] Connection error attempt {attempt}/{retries+1} — {e} TO={to_addr}")
+            if attempt <= retries:
+                time.sleep(2 ** attempt)   # exponential back-off: 2s, 4s
+
+        except smtplib.SMTPException as e:
+            last_error = e
+            print(f"[GeneLink][EMAIL] SMTP error attempt {attempt}/{retries+1} — {e} TO={to_addr}")
+            if attempt <= retries:
+                time.sleep(2 ** attempt)
+
+        except Exception as e:
+            last_error = e
+            print(f"[GeneLink][EMAIL] Unexpected error attempt {attempt}/{retries+1} — {type(e).__name__}: {e} TO={to_addr}")
+            if attempt <= retries:
+                time.sleep(2 ** attempt)
+
+    print(f"[GeneLink][EMAIL] All {retries+1} attempts failed — TO={to_addr} last_error={last_error}")
+    return False
+
+
+# ── Email templates ───────────────────────────────────────────────────────────
 
 def send_researcher_welcome_email(username: str, full_name: str, to_email: str, dashboard_url: str) -> bool:
     display = full_name or username

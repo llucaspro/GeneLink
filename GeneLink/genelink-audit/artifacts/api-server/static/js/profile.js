@@ -48,6 +48,14 @@ function toggleEdit() {
   btn.textContent = showing ? "Editar Perfil" : "Cancelar";
 }
 
+function repeatTutorial() {
+  // Remove o estado salvo de ambos os tipos de tutorial
+  localStorage.removeItem("gl_tut_researcher_v1");
+  localStorage.removeItem("gl_tut_inst_v1");
+  // Redireciona para o dashboard com flag ?tour=1 para forçar o tutorial
+  window.location.href = "/gl/dashboard?tour=1";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("profile-form").addEventListener("submit", async (e) => {
     e.preventDefault();

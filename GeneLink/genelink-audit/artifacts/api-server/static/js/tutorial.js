@@ -112,8 +112,11 @@
   const INST = [
     { sel:null, icon:'🏛️', title:'Bem-vindo ao Painel Institucional!',
       desc:'Este é o centro de gestão da sua instituição no GeneLink. Vamos conhecer cada seção — leva menos de 1 minuto!' },
-    { sel:'.inst-drawer-toggle,[data-drawer-toggle],.nav-drawer-btn,.drawer-btn', icon:'☰', title:'Menu de Navegação',
-      desc:'Este botão abre o menu lateral com todas as seções disponíveis para sua conta institucional.' },
+    // action:'openDrawer' → tutorial abre o drawer automaticamente neste passo
+    { sel:'.gl-menu-btn,.inst-drawer-toggle,[data-drawer-toggle],.nav-drawer-btn,.drawer-btn',
+      icon:'☰', title:'Menu de Navegação',
+      desc:'Este botão abre o menu lateral com todas as seções disponíveis para sua conta institucional.',
+      action: 'openDrawer' },
     { sel:'a[href="/gl/parcerias"]', icon:'🤝', title:'Parcerias',
       desc:'Publique vagas, projetos e oportunidades de colaboração. Pesquisadores poderão se candidatar diretamente pelo GeneLink.' },
     { sel:'a[href="/gl/inst-candidates"]', icon:'🎓', title:'Candidatos',
@@ -136,6 +139,27 @@
       if (el) return el;
     }
     return null;
+  }
+
+  // Executa a ação opcional ao sair de um passo
+  function leaveStep(i) {
+    const s = steps[i];
+    if (!s) return;
+    if (s.action === 'openDrawer') {
+      if (typeof _glCloseDrawer === 'function') _glCloseDrawer();
+    }
+  }
+
+  // Executa a ação opcional ao entrar em um passo
+  function enterStep(i) {
+    const s = steps[i];
+    if (!s) return;
+    if (s.action === 'openDrawer') {
+      if (typeof _glOpenDrawer === 'function') {
+        // Pequeno atraso para garantir que o DOM do navbar já foi injetado
+        setTimeout(_glOpenDrawer, 150);
+      }
+    }
   }
 
   function render(i) {
@@ -184,8 +208,16 @@
   }
 
   function show(i) {
+    // Executa ação de saída do passo atual antes de trocar
+    if (i !== cur) leaveStep(cur);
+
     cur = i;
-    const el = getEl(steps[i].sel);
+    const s = steps[i];
+    const el = getEl(s.sel);
+
+    // Executa ação de entrada do novo passo
+    enterStep(i);
+
     render(i);
     if (el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
     setTimeout(() => { placeHl(el); place(el); }, el ? 200 : 0);
@@ -197,6 +229,8 @@
     go(i)  { show(i); },
     done() {
       localStorage.setItem(STORAGE_KEY, '1');
+      // Fecha o drawer caso esteja aberto pelo tutorial
+      leaveStep(cur);
       [hl, card].forEach(el => {
         if (!el) return;
         el.style.opacity='0'; el.style.transition='opacity .3s';
