@@ -51,6 +51,19 @@ app.register_blueprint(dm_bp, url_prefix="/api")
 
 app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix="/gl")
 
+_IS_PRODUCTION = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
+
+
+@app.before_request
+def force_https():
+    """Redireciona HTTP → HTTPS em produção (Render coloca X-Forwarded-Proto)."""
+    if _IS_PRODUCTION:
+        proto = request.headers.get("X-Forwarded-Proto", "https")
+        if proto == "http":
+            from flask import redirect
+            url = request.url.replace("http://", "https://", 1)
+            return redirect(url, code=301)
+
 
 # ── Frontend page routes ────────────────────────────────────────────────────
 

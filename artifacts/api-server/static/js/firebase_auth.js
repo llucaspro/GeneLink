@@ -25,9 +25,13 @@ async function initFirebase() {
     firebaseApp = initializeApp(config);
     firebaseAuth = getAuth(firebaseApp);
 
-    // Exibe o botão de login social
+    // Exibe o botão de login social SOMENTE na aba de pesquisador (não instituição)
+    window._firebaseReady = true;
+    const instSection = document.getElementById("inst-section");
     const socialDiv = document.getElementById("social-login");
-    if (socialDiv) socialDiv.style.display = "block";
+    if (socialDiv && instSection && instSection.style.display !== "block") {
+      socialDiv.style.display = "block";
+    }
 
     // Verifica se há sessão ativa (retorno de popup)
     onAuthStateChanged(firebaseAuth, async (fbUser) => {

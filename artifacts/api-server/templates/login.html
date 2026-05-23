@@ -359,6 +359,11 @@ function showTab(active, section) {
   [secLogin, secRegister, secInst].forEach(s => s.style.display = 'none');
   active.classList.add('active');
   section.style.display = 'block';
+  // Só mostra o botão Google nas abas de pesquisador, não na de instituição
+  const socialDiv = document.getElementById('social-login');
+  if (socialDiv) {
+    socialDiv.style.display = (section === secInst) ? 'none' : (window._firebaseReady ? 'block' : 'none');
+  }
 }
 
 function showInstSub(sub) {
