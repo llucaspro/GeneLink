@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Busca de Genes · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content">
+  <div class="page-header">
+    <h1>Busca de Genes</h1>
+    <p>Pesquise o banco de dados NCBI Gene em tempo real. Os resultados são obtidos diretamente de <code style="font-family:var(--mono);font-size:.85em;background:var(--surface-alt);padding:2px 6px;border-radius:3px">eutils.ncbi.nlm.nih.gov</code> — nenhum dado simulado.</p>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-body">
+      <div id="search-alert" class="alert"></div>
+      <form id="search-form" class="search-bar">
+        <input
+          type="text"
+          id="search-input"
+          class="form-control"
+          placeholder="Busque por símbolo, nome ou doença (ex: BRCA1, TP53, tumor, alzheimer)"
+          autocomplete="off"
+          autofocus
+        >
+        <button type="submit" class="btn btn-primary" style="white-space:nowrap">
+          Buscar no NCBI
+        </button>
+      </form>
+      <div style="font-size:.8rem;color:var(--text-muted)">
+        Exemplos:
+        <a href="#" onclick="document.getElementById('search-input').value='BRCA1';document.getElementById('search-form').dispatchEvent(new Event('submit'));return false" style="margin:0 6px">BRCA1</a>·
+        <a href="#" onclick="document.getElementById('search-input').value='TP53';document.getElementById('search-form').dispatchEvent(new Event('submit'));return false" style="margin:0 6px">TP53</a>·
+        <a href="#" onclick="document.getElementById('search-input').value='insulin';document.getElementById('search-form').dispatchEvent(new Event('submit'));return false" style="margin:0 6px">insulina</a>·
+        <a href="#" onclick="document.getElementById('search-input').value='Alzheimer';document.getElementById('search-form').dispatchEvent(new Event('submit'));return false" style="margin:0 6px">Alzheimer</a>·
+        <a href="#" onclick="document.getElementById('search-input').value='EGFR';document.getElementById('search-form').dispatchEvent(new Event('submit'));return false" style="margin:0 6px">EGFR</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-meta" id="search-meta"></div>
+
+  <div class="card">
+    <div id="results-container">
+      <div class="empty-state">
+        <div class="empty-state-icon">🔬</div>
+        <h3>Digite um termo de busca acima</h3>
+        <p style="font-size:.85rem;margin-top:6px">Busque por símbolo do gene (BRCA1), nome de doença (câncer) ou termos específicos do organismo.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;font-size:.78rem;color:var(--text-light);text-align:center">
+    Fonte dos dados: NCBI Gene · National Center for Biotechnology Information · U.S. National Library of Medicine
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/search.js"></script>
+</body>
+</html>

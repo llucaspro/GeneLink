@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publicação · Fórum GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content" id="post-container">
+  <div style="margin-bottom:20px">
+    <a href="/forum" class="btn btn-ghost btn-sm">← Voltar ao Fórum</a>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-body">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+        <div>
+          <span class="badge badge-primary" id="post-category"></span>
+        </div>
+        <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none" onclick="deletePost()">Excluir Publicação</button>
+      </div>
+
+      <h1 style="font-size:1.45rem;font-weight:700;margin-bottom:14px" id="post-title"></h1>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <div class="avatar-sm" style="width:36px;height:36px;font-size:.85rem" id="post-author-initials"></div>
+        <div>
+          <div style="font-weight:600;font-size:.9rem" id="post-author"></div>
+          <div style="font-size:.78rem;color:var(--text-muted)" id="post-institution"></div>
+        </div>
+        <div style="margin-left:auto;font-size:.8rem;color:var(--text-light)" id="post-date"></div>
+      </div>
+
+      <div id="post-content-body" style="font-size:.95rem;line-height:1.75;color:var(--text);white-space:pre-wrap"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 id="comment-count">Comentários</h2>
+    </div>
+    <div id="comments-list"></div>
+
+    <div style="padding:20px;border-top:1px solid var(--border)">
+      <div id="comment-alert" class="alert"></div>
+      <form id="comment-form">
+        <div class="form-group">
+          <label class="form-label">Adicionar um comentário</label>
+          <textarea id="comment-content" class="form-control" rows="4" placeholder="Compartilhe seus pensamentos, dúvidas ou feedback…"></textarea>
+        </div>
+        <div style="text-align:right">
+          <button type="submit" id="submit-comment-btn" class="btn btn-primary">Publicar Comentário</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/forum_post.js"></script>
+</body>
+</html>

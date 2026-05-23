@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeneLink — Plataforma Científica de Pesquisa Genética</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/css/main.css">
+<style>
+.hero { background: linear-gradient(135deg, var(--primary) 0%, #0d3251 60%, #0a2a42 100%); color:#fff; padding: 88px 0 80px; }
+.hero h1 { font-size:2.8rem; font-weight:800; line-height:1.15; max-width:640px; }
+.hero h1 span { color: var(--accent-light); }
+.hero p { font-size:1.1rem; color:rgba(255,255,255,.82); margin:20px 0 36px; max-width:520px; line-height:1.7; }
+.hero-cta { display:flex; gap:14px; flex-wrap:wrap; }
+.hero-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18); border-radius:20px; padding:5px 14px; font-size:.82rem; color:rgba(255,255,255,.8); margin-bottom:24px; }
+.feature-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; padding:64px 0; }
+.feature-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px 24px; box-shadow:var(--shadow-sm); }
+.feature-icon { width:44px; height:44px; border-radius:10px; background:linear-gradient(135deg,var(--primary),var(--primary-light)); display:grid; place-items:center; margin-bottom:16px; font-size:1.3rem; }
+.feature-card h3 { font-size:1.05rem; font-weight:600; margin-bottom:8px; }
+.feature-card p { font-size:.88rem; color:var(--text-muted); line-height:1.65; }
+.section-label { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin-bottom:10px; }
+.section-title { font-size:1.8rem; font-weight:700; color:var(--primary); margin-bottom:12px; }
+.data-section { padding:0 0 72px; }
+.cta-section { background:var(--primary); padding:64px 0; text-align:center; }
+.cta-section h2 { color:#fff; font-size:1.9rem; margin-bottom:14px; }
+.cta-section p { color:rgba(255,255,255,.78); font-size:1rem; margin-bottom:32px; }
+.footer { background:var(--primary-dark); color:rgba(255,255,255,.55); text-align:center; padding:24px; font-size:.82rem; }
+.nav-landing { background:rgba(27,79,114,.97); backdrop-filter:blur(10px); color:#fff; height:56px; display:flex; align-items:center; padding:0 24px; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,.18); }
+.nav-landing-right { margin-left:auto; display:flex; gap:12px; }
+@media(max-width:768px){ .feature-grid{grid-template-columns:1fr} .hero h1{font-size:1.9rem} }
+</style>
+</head>
+<body>
+<nav class="nav-landing">
+  <div class="navbar-brand">
+    <div class="logo-icon">GL</div>
+    GeneLink
+  </div>
+  <div class="nav-landing-right">
+    <a href="/login" class="btn btn-ghost btn-sm" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.82);">Entrar</a>
+    <a href="/login" class="btn btn-accent btn-sm" id="signup-btn">Criar Conta</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">🧬 Banco de Dados NCBI Gene · Dados em tempo real</div>
+    <h1>A Plataforma Científica para <span>Pesquisa Genética</span> Colaborativa</h1>
+    <p>O GeneLink conecta pesquisadores a dados genômicos reais do NCBI, um fórum colaborativo e uma comunidade científica global — construído para pesquisa biomédica em escala acadêmica e profissional.</p>
+    <div class="hero-cta">
+      <a href="/login" class="btn btn-accent btn-lg">Começar — Gratuito</a>
+      <a href="#funcionalidades" class="btn btn-lg" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2)">Saiba Mais</a>
+    </div>
+  </div>
+</section>
+
+<div id="funcionalidades">
+<div class="container">
+<div class="feature-grid">
+  <div class="feature-card">
+    <div class="feature-icon">🔬</div>
+    <h3>Busca Real no Banco de Genes</h3>
+    <p>Consulte diretamente o banco de dados NCBI Gene. Os resultados incluem símbolo do gene, organismo, localização cromossômica e descrições oficiais — sem dados simulados, jamais.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">💬</div>
+    <h3>Fórum da Comunidade Científica</h3>
+    <p>Discuta descobertas, compartilhe resultados e colabore em questões de pesquisa com um fórum estruturado por domínio científico.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">⚡</div>
+    <h3>Chat Global em Tempo Real</h3>
+    <p>Mensagens instantâneas para a comunidade de pesquisa. Conecte-se em tempo real com outros cientistas para discussões rápidas e colaboração.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">👤</div>
+    <h3>Perfis de Pesquisadores</h3>
+    <p>Construa sua identidade científica com afiliação institucional, área de pesquisa e biografia pessoal. Conecte-se com colegas da sua área.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🔐</div>
+    <h3>Autenticação Segura</h3>
+    <p>Sistema completo de contas com hash de senha bcrypt, sessões JWT e login social via Supabase. Seus dados são seguros e privados.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📊</div>
+    <h3>Painel de Pesquisa</h3>
+    <p>Acompanhe seu histórico de buscas, atividade recente da comunidade e seu perfil de pesquisador — tudo em uma visão organizada.</p>
+  </div>
+</div>
+</div>
+</div>
+
+<section class="data-section">
+  <div class="container">
+    <div class="section-label">Integridade de Dados</div>
+    <div class="section-title">Construído sobre Dados Científicos Reais</div>
+    <p style="color:var(--text-muted);max-width:600px;font-size:.95rem;line-height:1.7;margin-bottom:32px">
+      O GeneLink consulta a API Entrez do NCBI (eutils.ncbi.nlm.nih.gov) em tempo real para cada busca de genes. Não há resultados simulados, dados fictícios ou informações científicas fabricadas. Se um gene não existe no NCBI, não aparecerá aqui.
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <span class="badge badge-primary" style="font-size:.85rem;padding:5px 14px">esearch.fcgi — Busca de IDs de genes</span>
+      <span class="badge badge-primary" style="font-size:.85rem;padding:5px 14px">esummary.fcgi — Detalhes do gene</span>
+      <span class="badge badge-accent" style="font-size:.85rem;padding:5px 14px">PostgreSQL — Armazenamento persistente</span>
+      <span class="badge badge-muted" style="font-size:.85rem;padding:5px 14px">WebSocket — Chat em tempo real</span>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <h2>Junte-se à Comunidade de Pesquisa</h2>
+    <p>Crie sua conta gratuita e comece a explorar o banco de dados de genes do NCBI hoje mesmo.</p>
+    <a href="/login" class="btn btn-accent btn-lg">Criar Conta Gratuita</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>GeneLink · Plataforma Científica de Pesquisa Genética · Dados de genes fornecidos pelo NCBI (National Center for Biotechnology Information)</p>
+</footer>
+
+<script>
+  document.getElementById("signup-btn").addEventListener("click", () => {
+    window.location.href = "/login#cadastro";
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat da Comunidade · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/css/main.css">
+<style>
+body { overflow: hidden; }
+.chat-page { display: flex; flex-direction: column; height: calc(100vh - 56px); }
+.chat-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.chat-header h2 { font-size: 1rem; font-weight: 600; }
+.chat-status { font-size: .8rem; }
+.chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface-alt);
+}
+.chat-footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 12px 20px;
+  flex-shrink: 0;
+}
+.chat-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.chat-input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: .9rem;
+  font-family: var(--font);
+  outline: none;
+  background: var(--surface-alt);
+}
+.chat-input-row input:focus {
+  border-color: var(--primary-light);
+  background: var(--surface);
+}
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="chat-page">
+  <div class="chat-header">
+    <div style="width:10px;height:10px;border-radius:50%;background:var(--success);flex-shrink:0"></div>
+    <h2>Chat Global de Pesquisa</h2>
+    <span class="badge badge-muted">Canal da Comunidade</span>
+    <div style="margin-left:auto">
+      <span class="chat-status" id="connection-status" style="color:var(--text-muted)">Conectando…</span>
+    </div>
+  </div>
+
+  <div id="chat-banner" class="alert" style="margin:8px 20px 0;border-radius:var(--radius)"></div>
+
+  <div class="chat-body" id="chat-messages">
+    <div class="loading-state"><div class="spinner spinner-dark"></div><p style="margin-top:10px">Carregando mensagens…</p></div>
+  </div>
+
+  <div class="chat-footer">
+    <form class="chat-input-row" id="chat-form">
+      <input
+        type="text"
+        id="chat-input"
+        placeholder="Envie uma mensagem para a comunidade científica…"
+        maxlength="2000"
+        autocomplete="off"
+      >
+      <button type="submit" class="btn btn-primary">Enviar</button>
+    </form>
+    <div style="margin-top:6px;font-size:.75rem;color:var(--text-light);text-align:center">
+      Chat em tempo real · Mensagens visíveis para todos os membros da comunidade
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="/static/js/api.js"></script>
+<script src="/static/js/chat.js"></script>
+</body>
+</html>

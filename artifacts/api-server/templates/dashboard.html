@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content">
+  <div class="page-header">
+    <h1>Bem-vindo(a), <span id="welcome-name" style="color:var(--primary-light)">Pesquisador(a)</span></h1>
+    <p>Seu painel de pesquisa — atividade recente e acesso rápido a todas as ferramentas.</p>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:28px">
+    <div class="stat-card" style="grid-column:1/2">
+      <div class="stat-label">Conta</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--primary)" id="stat-username"></div>
+      <div class="stat-sub" id="stat-institution"></div>
+      <div style="margin-top:12px">
+        <span class="badge badge-primary" id="stat-area"></span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Membro desde</div>
+      <div class="stat-value" style="font-size:1.3rem" id="stat-joined"></div>
+      <div class="stat-sub">Pesquisador GeneLink</div>
+    </div>
+    <div class="stat-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+      <div class="stat-label">Ações Rápidas</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <a href="/search" class="btn btn-primary btn-sm">🔬 Buscar Genes</a>
+        <a href="/forum" class="btn btn-outline btn-sm">📋 Ver Fórum</a>
+        <a href="/chat" class="btn btn-ghost btn-sm">💬 Abrir Chat</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Buscas de Genes Recentes</h2>
+          <a href="/search" class="btn btn-ghost btn-sm">Buscar →</a>
+        </div>
+        <div class="card-body" id="recent-searches">
+          <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Publicações Recentes da Comunidade</h2>
+          <a href="/forum" class="btn btn-ghost btn-sm">Fórum →</a>
+        </div>
+        <div id="recent-posts">
+          <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:28px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:.83rem;color:var(--text-muted);display:flex;align-items:center;gap:12px">
+    <span style="font-size:1.1rem">🧬</span>
+    <span>Todos os resultados de busca de genes são recuperados em tempo real do <strong>banco de dados NCBI Gene</strong> (eutils.ncbi.nlm.nih.gov). Nenhum dado é simulado ou fabricado.</span>
+  </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>
