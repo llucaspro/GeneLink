@@ -35,8 +35,10 @@ def get_posts():
                 (per_page, offset),
             )
         rows = cur.fetchall()
-        cur.execute("SELECT COUNT(*) AS total FROM posts" + (" WHERE category=%s" if category else ""),
-                    (category,) if category else ())
+        if category:
+            cur.execute("SELECT COUNT(*) AS total FROM posts WHERE category=%s", (category,))
+        else:
+            cur.execute("SELECT COUNT(*) AS total FROM posts")
         total = cur.fetchone()["total"]
         cur.close()
         conn.close()

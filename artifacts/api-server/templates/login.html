@@ -4,32 +4,92 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Entrar · GeneLink</title>
-<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-<link rel="stylesheet" href="/static/css/main.css">
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
 <style>
 body { background:var(--surface-alt); display:flex; flex-direction:column; min-height:100vh; }
 .auth-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:40px 16px; }
-.auth-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-md); width:100%; max-width:440px; overflow:hidden; }
+.auth-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); box-shadow:var(--shadow-md);
+  width:100%; max-width:500px; overflow:hidden;
+}
 .auth-header { background:var(--primary); color:#fff; padding:28px 32px 24px; }
 .auth-header .brand { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
 .auth-header .brand-icon { width:32px; height:32px; background:var(--accent); border-radius:6px; display:grid; place-items:center; font-weight:800; font-size:.9rem; }
 .auth-header h1 { font-size:1.35rem; font-weight:700; }
 .auth-header p { color:rgba(255,255,255,.75); font-size:.85rem; margin-top:4px; }
-.tab-bar { display:flex; border-bottom:1px solid var(--border); }
-.tab-btn { flex:1; padding:13px; font-size:.88rem; font-weight:600; font-family:var(--font); border:none; background:var(--surface); color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; }
+
+/* Main tab bar */
+.tab-bar { display:flex; border-bottom:1px solid var(--border); overflow:hidden; }
+.tab-btn {
+  flex:1; padding:12px 6px; font-size:.8rem; font-weight:600;
+  font-family:var(--font); border:none; background:var(--surface);
+  color:var(--text-muted); cursor:pointer;
+  border-bottom:2px solid transparent; transition:all .15s;
+  white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:5px;
+}
 .tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); background:#fff; }
-.auth-body { padding:28px 32px 32px; }
+#tab-inst.active { color:#1d7a3b; border-bottom-color:#1d7a3b; }
+#tab-inst:not(.active):hover { color:#1d7a3b; background:#f0fdf4; }
+
+/* Sub-toggle inside Instituição tab */
+.sub-toggle {
+  display:flex; border:1px solid #86efac; border-radius:8px;
+  overflow:hidden; margin-bottom:20px; background:#f0fdf4;
+}
+.sub-toggle-btn {
+  flex:1; padding:9px; font-size:.82rem; font-weight:600;
+  font-family:var(--font); border:none; cursor:pointer;
+  background:transparent; color:#166534; transition:all .15s;
+}
+.sub-toggle-btn.active { background:#16a34a; color:#fff; }
+
+.auth-body { padding:24px 32px 32px; }
+
+.inst-badge {
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(135deg,#f0fdf4,#dcfce7);
+  border:1px solid #86efac; border-radius:var(--radius);
+  padding:12px 14px; margin-bottom:18px;
+}
+.inst-badge-icon { width:38px; height:38px; background:#16a34a; border-radius:8px; display:grid; place-items:center; font-size:1.25rem; flex-shrink:0; }
+.inst-badge-text strong { display:block; color:#15803d; font-size:.875rem; }
+.inst-badge-text span { font-size:.78rem; color:#166534; }
+
+.cnpj-hint { font-size:.75rem; color:var(--text-muted); margin-top:4px; }
+.cnpj-hint.valid  { color:#16a34a; }
+.cnpj-hint.invalid{ color:var(--danger); }
+
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
 .divider-line { display:flex; align-items:center; gap:12px; color:var(--text-light); font-size:.8rem; margin:16px 0; }
 .divider-line::before, .divider-line::after { content:''; flex:1; height:1px; background:var(--border); }
-.social-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:10px; border:1px solid var(--border); border-radius:var(--radius); font-size:.875rem; font-weight:600; font-family:var(--font); cursor:pointer; background:var(--surface); color:var(--text); transition:background .15s, border-color .15s; margin-bottom:10px; }
+
+.social-btn {
+  width:100%; display:flex; align-items:center; justify-content:center;
+  gap:10px; padding:10px; border:1px solid var(--border);
+  border-radius:var(--radius); font-size:.875rem; font-weight:600;
+  font-family:var(--font); cursor:pointer; background:var(--surface);
+  color:var(--text); transition:background .15s, border-color .15s; margin-bottom:10px;
+}
 .social-btn:hover { background:var(--surface-alt); border-color:var(--primary-light); }
 .social-btn svg { width:18px; height:18px; flex-shrink:0; }
 #social-login { display:none; }
-.alert-info { background:#e8f4fd; border:1px solid #bee3f8; color:#2b6cb0; border-radius:var(--radius); padding:12px 16px; font-size:.85rem; margin-bottom:12px; display:none; }
-.alert-info.show { display:block; }
+
+.inst-success { text-align:center; padding:24px 0 8px; display:none; }
+.inst-success .check-circle { width:56px; height:56px; background:#dcfce7; border-radius:50%; display:grid; place-items:center; margin:0 auto 14px; font-size:1.8rem; }
+.inst-success h3 { font-size:1.05rem; color:#15803d; margin-bottom:6px; }
+.inst-success p { font-size:.85rem; color:var(--text-muted); }
 </style>
 </head>
 <body>
+{% if clear_storage %}
+<script>
+  localStorage.removeItem('gl_token'); localStorage.removeItem('gl_user');
+  localStorage.removeItem('gl_inst_token'); localStorage.removeItem('gl_inst');
+</script>
+{% endif %}
 
 <div class="auth-wrap">
   <div class="auth-card">
@@ -43,77 +103,66 @@ body { background:var(--surface-alt); display:flex; flex-direction:column; min-h
     </div>
 
     <div class="tab-bar">
-      <button class="tab-btn active" id="tab-login">Entrar</button>
-      <button class="tab-btn" id="tab-register">Criar Conta</button>
+      <button class="tab-btn active" id="tab-login"><span>🔑</span> Entrar</button>
+      <button class="tab-btn" id="tab-register"><span>👤</span> Pesquisador</button>
+      <button class="tab-btn" id="tab-inst"><span>🏛️</span> Instituição</button>
     </div>
 
     <div class="auth-body">
 
-      <!-- Login Social via Firebase -->
+      <!-- Social login (hidden) -->
       <div id="social-login">
-        <button class="social-btn" id="btn-google" onclick="loginComGoogle()">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
+        <button class="social-btn" onclick="loginComGoogle()">
+          <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
           Entrar com Google
-        </button>
-        <button class="social-btn" id="btn-github" onclick="loginComGitHub()">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" fill="#333"/>
-          </svg>
-          Entrar com GitHub
         </button>
         <div class="divider-line">ou continue com e-mail</div>
       </div>
 
-      <!-- Aviso de verificação de e-mail -->
-      <div id="verify-email-notice" class="alert-info">
-        Enviamos um e-mail de verificação para você. Confirme seu e-mail antes de entrar.
-      </div>
-
-      <!-- Login com e-mail -->
+      <!-- ═══ ABA: LOGIN PESQUISADOR ═══ -->
       <div id="login-section">
         <div id="login-alert" class="alert"></div>
         <form id="login-form" autocomplete="on">
           <div class="form-group">
-            <label class="form-label">Endereço de e-mail</label>
+            <label class="form-label">E-mail</label>
             <input type="email" id="login-email" class="form-control" placeholder="pesquisador@instituicao.edu.br" autocomplete="email" required>
           </div>
           <div class="form-group">
             <label class="form-label">Senha</label>
             <input type="password" id="login-password" class="form-control" placeholder="Sua senha" autocomplete="current-password" required>
           </div>
-          <button type="submit" id="login-btn" class="btn btn-primary btn-block btn-lg" style="margin-top:8px">Entrar</button>
+          <button type="submit" id="login-btn" class="btn btn-primary btn-block btn-lg" style="margin-top:8px">Entrar como Pesquisador</button>
         </form>
         <p style="text-align:center;font-size:.8rem;color:var(--text-muted);margin-top:16px">
-          Não tem uma conta? <a href="#" onclick="document.getElementById('tab-register').click();return false">Crie agora</a>
+          Sem conta? <a href="#" onclick="showTab(tabRegister,secRegister);return false">Cadastre-se</a>
+          &nbsp;·&nbsp;
+          É uma universidade? <a href="#" onclick="showTab(tabInst,secInst);return false">Acesse aqui</a>
         </p>
       </div>
 
-      <!-- Cadastro -->
+      <!-- ═══ ABA: PESQUISADOR (CADASTRO) ═══ -->
       <div id="register-section" style="display:none">
         <div id="register-alert" class="alert"></div>
         <form id="register-form" autocomplete="on">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="grid-2">
             <div class="form-group">
               <label class="form-label">Nome Completo</label>
               <input type="text" id="reg-fullname" class="form-control" placeholder="João Silva" autocomplete="name">
             </div>
             <div class="form-group">
               <label class="form-label">Usuário <span style="color:var(--danger)">*</span></label>
-              <input type="text" id="reg-username" class="form-control" placeholder="joaosilva" autocomplete="username" required>
+              <input type="text" id="reg-username" class="form-control" placeholder="joaosilva" required>
+              <small id="username-status" style="display:none;font-size:.78rem;margin-top:4px"></small>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Endereço de e-mail <span style="color:var(--danger)">*</span></label>
-            <input type="email" id="reg-email" class="form-control" placeholder="pesquisador@instituicao.edu.br" autocomplete="email" required>
+            <label class="form-label">E-mail <span style="color:var(--danger)">*</span></label>
+            <input type="email" id="reg-email" class="form-control" placeholder="pesquisador@instituicao.edu.br" required>
+          <small id="email-status" style="display:none;font-size:.78rem;margin-top:4px"></small>
           </div>
           <div class="form-group">
             <label class="form-label">Senha <span style="color:var(--danger)">*</span></label>
-            <input type="password" id="reg-password" class="form-control" placeholder="Mínimo 8 caracteres" autocomplete="new-password" required>
+            <input type="password" id="reg-password" class="form-control" placeholder="Mínimo 8 caracteres" required>
           </div>
           <div class="form-group">
             <label class="form-label">Instituição</label>
@@ -123,10 +172,169 @@ body { background:var(--surface-alt); display:flex; flex-direction:column; min-h
             <label class="form-label">Área de Pesquisa</label>
             <input type="text" id="reg-area" class="form-control" placeholder="Genômica, Biologia do Câncer…">
           </div>
-          <button type="submit" id="register-btn" class="btn btn-accent btn-block btn-lg" style="margin-top:4px">Criar Conta</button>
+          <button type="submit" id="register-btn" class="btn btn-accent btn-block btn-lg" style="margin-top:4px">Criar Conta de Pesquisador</button>
         </form>
         <p style="text-align:center;font-size:.8rem;color:var(--text-muted);margin-top:16px">
-          Já tem uma conta? <a href="#" onclick="document.getElementById('tab-login').click();return false">Entrar</a>
+          Já tem conta? <a href="#" onclick="showTab(tabLogin,secLogin);return false">Entrar</a>
+          &nbsp;·&nbsp;
+          É uma universidade? <a href="#" onclick="showTab(tabInst,secInst);return false">Acesse aqui</a>
+        </p>
+      </div>
+
+      <!-- ═══ ABA: INSTITUIÇÃO (LOGIN + CADASTRO) ═══ -->
+      <div id="inst-section" style="display:none">
+
+        <!-- Sub-toggle: Login | Cadastrar -->
+        <div class="sub-toggle" id="inst-subtoggle">
+          <button class="sub-toggle-btn active" id="sub-inst-login" onclick="showInstSub('login')">🔑 Fazer Login</button>
+          <button class="sub-toggle-btn" id="sub-inst-reg" onclick="showInstSub('reg')">📋 Cadastrar Nova</button>
+        </div>
+
+        <!-- ── Login institucional ── -->
+        <div id="inst-login-wrap">
+          <div class="inst-badge">
+            <div class="inst-badge-icon">🏛️</div>
+            <div class="inst-badge-text">
+              <strong>Acesso Institucional</strong>
+              <span>Para universidades e centros de pesquisa aprovados</span>
+            </div>
+          </div>
+          <div id="inst-login-alert" class="alert"></div>
+          <form id="inst-login-form" autocomplete="on">
+            <div class="form-group">
+              <label class="form-label">E-mail Institucional <span style="color:var(--danger)">*</span></label>
+              <input type="email" id="inst-login-email" class="form-control" placeholder="contato@universidade.edu.br" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Senha <span style="color:var(--danger)">*</span></label>
+              <input type="password" id="inst-login-password" class="form-control" placeholder="Senha definida no cadastro" autocomplete="current-password" required>
+            </div>
+            <button type="submit" id="inst-login-btn" class="btn btn-block btn-lg" style="background:#16a34a;color:#fff;font-weight:700;margin-top:4px">
+              Entrar como Instituição
+            </button>
+          </form>
+          <p style="text-align:center;font-size:.78rem;color:var(--text-muted);margin-top:14px">
+            Ainda não cadastrou sua instituição? <a href="#" onclick="showInstSub('reg');return false">Cadastrar agora</a>
+          </p>
+          <p style="text-align:center;font-size:.78rem;color:var(--text-muted)">
+            Aguardando aprovação? A equipe GeneLink enviará um e-mail quando for aprovada.
+          </p>
+        </div>
+
+        <!-- ── Cadastro institucional ── -->
+        <div id="inst-reg-wrap" style="display:none">
+          <div id="inst-form-wrap">
+            <div id="inst-alert" class="alert"></div>
+            <form id="inst-form" autocomplete="on" novalidate>
+
+              <div class="form-group">
+                <label class="form-label">CNPJ <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="inst-cnpj" class="form-control" placeholder="00.000.000/0001-00" maxlength="18" autocomplete="off" required>
+                <div class="cnpj-hint" id="cnpj-hint">14 dígitos — formato XX.XXX.XXX/XXXX-XX</div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group" style="grid-column:1/-1">
+                  <label class="form-label">Nome da Instituição <span style="color:var(--danger)">*</span></label>
+                  <input type="text" id="inst-name" class="form-control" placeholder="Universidade de São Paulo" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Sigla <span style="color:var(--danger)">*</span></label>
+                  <input type="text" id="inst-short" class="form-control" placeholder="USP" maxlength="20" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Código e-MEC</label>
+                  <input type="text" id="inst-emec" class="form-control" placeholder="578" maxlength="20">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Tipo de Instituição <span style="color:var(--danger)">*</span></label>
+                <select id="inst-type" class="form-control" required>
+                  <option value="">Selecione…</option>
+                  <option>Universidade Federal</option><option>Universidade Estadual</option>
+                  <option>Universidade Particular</option><option>Faculdade</option>
+                  <option>Instituto Federal</option><option>Centro Universitário</option>
+                  <option>Instituto de Pesquisa</option><option>Hospital Universitário</option>
+                  <option>Outro</option>
+                </select>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">E-mail Institucional <span style="color:var(--danger)">*</span></label>
+                  <input type="email" id="inst-email" class="form-control" placeholder="contato@usp.br" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Domínio de e-mail</label>
+                  <input type="text" id="inst-domain" class="form-control" placeholder="usp.br">
+                </div>
+              </div>
+
+              <!-- Senha de acesso -->
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Senha de Acesso <span style="color:var(--danger)">*</span></label>
+                  <input type="password" id="inst-password" class="form-control" placeholder="Mínimo 8 caracteres" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Confirmar Senha <span style="color:var(--danger)">*</span></label>
+                  <input type="password" id="inst-password2" class="form-control" placeholder="Repita a senha" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Website</label>
+                <input type="url" id="inst-website" class="form-control" placeholder="https://www.usp.br">
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Cidade <span style="color:var(--danger)">*</span></label>
+                  <input type="text" id="inst-city" class="form-control" placeholder="São Paulo" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Estado <span style="color:var(--danger)">*</span></label>
+                  <select id="inst-state" class="form-control" required>
+                    <option value="">UF</option>
+                    <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+                    <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                    <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+                    <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+                    <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                    <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+                    <option selected>SP</option><option>SE</option><option>TO</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Descrição / Missão</label>
+                <textarea id="inst-desc" class="form-control" rows="2" placeholder="Breve descrição da instituição…" style="resize:vertical"></textarea>
+              </div>
+
+              <div style="background:#fefce8;border:1px solid #fde68a;border-radius:var(--radius);padding:10px 12px;font-size:.78rem;color:#92400e;margin-bottom:16px">
+                ℹ️ Após o cadastro, aguarde a aprovação pela equipe GeneLink. Você receberá um e-mail quando for aprovada.
+              </div>
+
+              <button type="submit" id="inst-submit-btn" class="btn btn-block btn-lg" style="background:#16a34a;color:#fff;font-weight:700">
+                Cadastrar Instituição
+              </button>
+            </form>
+          </div>
+
+          <div class="inst-success" id="inst-success">
+            <div class="check-circle">✅</div>
+            <h3>Instituição cadastrada!</h3>
+            <p>Solicitação enviada para análise. Você receberá um e-mail de confirmação quando for aprovada.</p>
+            <button class="btn btn-block" style="background:#16a34a;color:#fff;margin-top:20px" onclick="showInstSub('login')">
+              Ir para o Login
+            </button>
+          </div>
+        </div>
+
+        <p style="text-align:center;font-size:.8rem;color:var(--text-muted);margin-top:16px">
+          É pesquisador? <a href="#" onclick="showTab(tabRegister,secRegister);return false">Crie sua conta de pesquisador</a>
         </p>
       </div>
 
@@ -134,13 +342,213 @@ body { background:var(--surface-alt); display:flex; flex-direction:column; min-h
   </div>
 </div>
 
-<script src="/static/js/api.js"></script>
-<script type="module" src="/static/js/firebase_auth.js"></script>
-<script src="/static/js/auth.js"></script>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/auth.js"></script>
+<script type="module" src="/gl/static/js/firebase_auth.js"></script>
 <script>
-  if (window.location.hash === "#cadastro") {
-    setTimeout(() => document.getElementById("tab-register").click(), 50);
+const tabLogin    = document.getElementById('tab-login');
+const tabRegister = document.getElementById('tab-register');
+const tabInst     = document.getElementById('tab-inst');
+const secLogin    = document.getElementById('login-section');
+const secRegister = document.getElementById('register-section');
+const secInst     = document.getElementById('inst-section');
+
+function showTab(active, section) {
+  [tabLogin, tabRegister, tabInst].forEach(t => t.classList.remove('active'));
+  [secLogin, secRegister, secInst].forEach(s => s.style.display = 'none');
+  active.classList.add('active');
+  section.style.display = 'block';
+}
+
+function showInstSub(sub) {
+  const loginWrap = document.getElementById('inst-login-wrap');
+  const regWrap   = document.getElementById('inst-reg-wrap');
+  const btnLogin  = document.getElementById('sub-inst-login');
+  const btnReg    = document.getElementById('sub-inst-reg');
+  if (sub === 'login') {
+    loginWrap.style.display = 'block'; regWrap.style.display = 'none';
+    btnLogin.classList.add('active'); btnReg.classList.remove('active');
+  } else {
+    loginWrap.style.display = 'none'; regWrap.style.display = 'block';
+    btnReg.classList.add('active'); btnLogin.classList.remove('active');
   }
+}
+
+tabLogin.addEventListener('click',    () => showTab(tabLogin,    secLogin));
+tabRegister.addEventListener('click', () => showTab(tabRegister, secRegister));
+tabInst.addEventListener('click',     () => showTab(tabInst,     secInst));
+
+if (window.location.hash === '#cadastro')    setTimeout(() => showTab(tabRegister, secRegister), 50);
+if (window.location.hash === '#instituicao') setTimeout(() => { showTab(tabInst, secInst); showInstSub('login'); }, 50);
+if (window.location.hash === '#inst-cadastro') setTimeout(() => { showTab(tabInst, secInst); showInstSub('reg'); }, 50);
+
+// ── Institution LOGIN ──
+document.getElementById('inst-login-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const alertEl = document.getElementById('inst-login-alert');
+  const btn     = document.getElementById('inst-login-btn');
+  alertEl.className = 'alert'; alertEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Entrando…';
+
+  try {
+    const res = await fetch('/gl/api/institutions/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email   : document.getElementById('inst-login-email').value.trim(),
+        password: document.getElementById('inst-login-password').value,
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao entrar');
+    localStorage.setItem('gl_inst_token', data.token);
+    localStorage.setItem('gl_inst', JSON.stringify(data.institution));
+    window.location.href = '/gl/inst-dashboard';
+  } catch (err) {
+    alertEl.className = 'alert alert-error';
+    alertEl.textContent = err.message;
+    btn.disabled = false; btn.textContent = 'Entrar como Instituição';
+  }
+});
+
+// ── CNPJ mask + validation ──
+function cnpjDigits(v) { return v.replace(/\D/g,''); }
+function cnpjMask(v) {
+  const d = cnpjDigits(v).slice(0,14);
+  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5')
+          .replace(/^(\d{2})(\d{3})(\d{3})(\d{4})$/,'$1.$2.$3/$4')
+          .replace(/^(\d{2})(\d{3})(\d{3})$/,'$1.$2.$3')
+          .replace(/^(\d{2})(\d{3})$/,'$1.$2')
+          .replace(/^(\d{2})$/,'$1');
+}
+function cnpjValid(v) {
+  const d = cnpjDigits(v);
+  if (d.length !== 14 || /^(\d)\1+$/.test(d)) return false;
+  const calc = (n, w) => {
+    let s = 0;
+    for (let i = 0; i < n; i++) s += parseInt(d[i]) * w[i];
+    const r = s % 11; return r < 2 ? 0 : 11 - r;
+  };
+  return calc(12,[5,4,3,2,9,8,7,6,5,4,3,2]) === parseInt(d[12])
+      && calc(13,[6,5,4,3,2,9,8,7,6,5,4,3,2]) === parseInt(d[13]);
+}
+
+const cnpjInput = document.getElementById('inst-cnpj');
+const cnpjHint  = document.getElementById('cnpj-hint');
+let _cnpjTimer  = null;
+
+cnpjInput.addEventListener('input', () => {
+  cnpjInput.value = cnpjMask(cnpjInput.value);
+  const d = cnpjDigits(cnpjInput.value);
+  clearTimeout(_cnpjTimer);
+  if (!d.length) {
+    cnpjHint.className = 'cnpj-hint';
+    cnpjHint.textContent = '14 dígitos — formato XX.XXX.XXX/XXXX-XX';
+  } else if (d.length < 14) {
+    cnpjHint.className = 'cnpj-hint';
+    cnpjHint.textContent = `${d.length}/14 dígitos`;
+  } else if (!cnpjValid(cnpjInput.value)) {
+    cnpjHint.className = 'cnpj-hint invalid';
+    cnpjHint.textContent = '✗ CNPJ inválido';
+  } else {
+    cnpjHint.className = 'cnpj-hint';
+    cnpjHint.textContent = '⏳ Consultando Receita Federal…';
+    _cnpjTimer = setTimeout(() => _fetchCnpj(d), 600);
+  }
+});
+
+async function _fetchCnpj(digits) {
+  try {
+    const res  = await fetch(`/gl/api/cnpj/${digits}`);
+    const data = await res.json();
+    if (!res.ok) {
+      cnpjHint.className = 'cnpj-hint invalid';
+      cnpjHint.textContent = `✗ ${data.error || 'CNPJ não encontrado'}`;
+      return;
+    }
+    const fill = (id, val) => { if (val && !document.getElementById(id).value) document.getElementById(id).value = val; };
+    fill('inst-name',    data.name);
+    fill('inst-short',   data.short_name);
+    fill('inst-city',    data.city);
+    fill('inst-website', data.website);
+    if (data.state) {
+      const sel = document.getElementById('inst-state');
+      for (const opt of sel.options) { if (opt.value === data.state) { sel.value = data.state; break; } }
+    }
+    if (data.type_hint) {
+      const sel = document.getElementById('inst-type');
+      for (const opt of sel.options) { if (opt.value === data.type_hint) { sel.value = data.type_hint; break; } }
+    }
+    cnpjHint.className = 'cnpj-hint valid';
+    cnpjHint.textContent = data.name
+      ? `✓ ${data.name} — dados preenchidos automaticamente`
+      : '✓ CNPJ válido';
+  } catch (_) {
+    cnpjHint.className = 'cnpj-hint valid';
+    cnpjHint.textContent = '✓ CNPJ válido';
+  }
+}
+
+document.getElementById('inst-email').addEventListener('blur', function() {
+  const v = this.value.trim();
+  if (v.includes('@') && !document.getElementById('inst-domain').value)
+    document.getElementById('inst-domain').value = v.split('@')[1] || '';
+});
+
+// ── Institution REGISTER ──
+document.getElementById('inst-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const alertEl = document.getElementById('inst-alert');
+  const btn     = document.getElementById('inst-submit-btn');
+  alertEl.className = 'alert'; alertEl.textContent = '';
+
+  const cnpj = document.getElementById('inst-cnpj').value.trim();
+  if (!cnpjValid(cnpj)) {
+    alertEl.className = 'alert alert-error';
+    alertEl.textContent = 'CNPJ inválido.';
+    return;
+  }
+  const pw  = document.getElementById('inst-password').value;
+  const pw2 = document.getElementById('inst-password2').value;
+  if (!pw || pw.length < 8) { alertEl.className='alert alert-error'; alertEl.textContent='Senha deve ter pelo menos 8 caracteres.'; return; }
+  if (pw !== pw2) { alertEl.className='alert alert-error'; alertEl.textContent='As senhas não coincidem.'; return; }
+
+  const type = document.getElementById('inst-type').value;
+  if (!type) { alertEl.className='alert alert-error'; alertEl.textContent='Selecione o tipo da instituição.'; return; }
+
+  const payload = {
+    cnpj, type, password: pw,
+    name        : document.getElementById('inst-name').value.trim(),
+    short_name  : document.getElementById('inst-short').value.trim(),
+    emec_code   : document.getElementById('inst-emec').value.trim(),
+    email       : document.getElementById('inst-email').value.trim(),
+    email_domain: document.getElementById('inst-domain').value.trim(),
+    website     : document.getElementById('inst-website').value.trim(),
+    city        : document.getElementById('inst-city').value.trim(),
+    state       : document.getElementById('inst-state').value,
+    description : document.getElementById('inst-desc').value.trim(),
+  };
+
+  if (!payload.name || !payload.short_name || !payload.email || !payload.city || !payload.state) {
+    alertEl.className = 'alert alert-error'; alertEl.textContent = 'Preencha todos os campos obrigatórios (*)'; return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    const res = await fetch('/gl/api/institutions/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao cadastrar');
+    document.getElementById('inst-form-wrap').style.display = 'none';
+    document.getElementById('inst-success').style.display = 'block';
+  } catch (err) {
+    alertEl.className = 'alert alert-error'; alertEl.textContent = err.message;
+    btn.disabled = false; btn.textContent = 'Cadastrar Instituição';
+  }
+});
 </script>
 </body>
 </html>

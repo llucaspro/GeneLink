@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.admin-header { background:linear-gradient(135deg,#1a252f,#2c3e50); color:#fff; padding:28px 0 24px; }
+.admin-header h1 { color:#fff; font-size:1.4rem; display:flex; align-items:center; gap:10px; }
+.admin-header p { color:rgba(255,255,255,.65); font-size:.84rem; margin-top:4px; }
+
+/* Stat grid */
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:24px; }
+.stat-card { border-radius:14px; padding:16px 18px; display:flex; align-items:center; gap:12px; border:1px solid; }
+.stat-card .s-icon { width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+.stat-card .s-num { font-size:1.6rem; font-weight:800; line-height:1; }
+.stat-card .s-lbl { font-size:.72rem; color:var(--text-muted); margin-top:2px; }
+.s-blue   { background:#eff6ff; border-color:#bfdbfe; } .s-blue .s-icon   { background:#dbeafe; } .s-blue .s-num   { color:#1d4ed8; }
+.s-green  { background:#f0fdf4; border-color:#bbf7d0; } .s-green .s-icon  { background:#dcfce7; } .s-green .s-num  { color:#15803d; }
+.s-teal   { background:#f0fdfa; border-color:#99f6e4; } .s-teal .s-icon   { background:#ccfbf1; } .s-teal .s-num   { color:#0f766e; }
+.s-purple { background:#faf5ff; border-color:#e9d5ff; } .s-purple .s-icon { background:#f3e8ff; } .s-purple .s-num { color:#7c3aed; }
+.s-orange { background:#fff7ed; border-color:#fed7aa; } .s-orange .s-icon { background:#ffedd5; } .s-orange .s-num { color:#c2410c; }
+.s-pink   { background:#fdf2f8; border-color:#f5c6e7; } .s-pink .s-icon   { background:#fce7f3; } .s-pink .s-num   { color:#9d174d; }
+
+/* Tabs */
+.tab-nav { display:flex; border-bottom:2px solid var(--border); margin-bottom:24px; overflow-x:auto; gap:0; }
+.tab-nav::-webkit-scrollbar { display:none; }
+.tab-link { padding:10px 18px; font-size:.88rem; font-weight:600; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+.tab-link:hover { color:var(--primary); }
+.tab-link.active { color:var(--primary); border-bottom-color:var(--primary); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+/* Search bar */
+.search-bar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.search-input { flex:1; min-width:200px; padding:8px 14px; border:1px solid var(--border); border-radius:var(--radius); font-size:.87rem; background:var(--surface); }
+.search-input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+
+/* Table */
+table { width:100%; border-collapse:collapse; font-size:.85rem; }
+th { text-align:left; padding:9px 12px; border-bottom:2px solid var(--border); font-size:.73rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; background:var(--surface-alt); }
+td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tr:hover td { background:#f8faff; }
+.action-cell { display:flex; gap:5px; flex-wrap:wrap; }
+
+/* Badges */
+.badge-v   { background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:20px;padding:2px 9px;font-size:.71rem;font-weight:700; }
+.badge-u   { background:#fff8e1;color:#f57f17;border:1px solid #ffe082;border-radius:20px;padding:2px 9px;font-size:.71rem;font-weight:700; }
+.badge-admin { background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;border-radius:20px;padding:2px 9px;font-size:.71rem;font-weight:700; }
+.badge-draft { background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:20px;padding:2px 9px;font-size:.71rem;font-weight:700; }
+.badge-sub  { background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:20px;padding:2px 9px;font-size:.71rem;font-weight:700; }
+.badge-rev  { background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;border-radius:20px;padding:2px 9px;font-size:.71rem;font-weight:700; }
+.badge-pub  { background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;border-radius:20px;padding:2px 9px;font-size:.71rem;font-weight:700; }
+
+/* Activity feed */
+.feed-item { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+.feed-item:last-child { border-bottom:none; }
+.feed-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+.feed-main { flex:1; min-width:0; }
+.feed-title { font-weight:600; font-size:.87rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.feed-meta  { font-size:.76rem; color:var(--text-muted); margin-top:2px; }
+
+/* Overview grid */
+.ov-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+@media(max-width:900px){ .ov-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:600px){ .ov-grid { grid-template-columns:1fr; } }
+.ov-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 20px; }
+.ov-card h3 { font-size:.9rem; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+
+/* Access denied */
+.access-denied { text-align:center; padding:80px 20px; }
+
+/* Reset pwd modal */
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:2000; align-items:center; justify-content:center; }
+.modal-box { background:#fff; border-radius:14px; padding:28px; width:100%; max-width:420px; margin:16px; box-shadow:0 20px 60px rgba(0,0,0,.22); }
+
+/* Pagination */
+.pagination { display:flex; gap:6px; align-items:center; justify-content:flex-end; margin-top:14px; }
+.page-btn { padding:5px 12px; border:1px solid var(--border); border-radius:6px; font-size:.82rem; cursor:pointer; background:var(--surface); }
+.page-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.page-btn:hover:not(.active) { background:var(--surface-alt); }
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div id="access-denied" class="access-denied" style="display:none">
+  <div style="font-size:3rem">🔒</div>
+  <h2 style="margin-top:12px">Acesso Restrito</h2>
+  <p style="color:var(--text-muted);margin-top:8px">Apenas administradores podem acessar este painel.</p>
+  <a href="/gl/dashboard" class="btn btn-primary" style="margin-top:20px">Voltar ao Painel</a>
+</div>
+
+<div id="admin-content" style="display:none">
+  <div class="admin-header">
+    <div class="container">
+      <h1>⚙️ Painel Administrativo</h1>
+      <p>Gerencie usuários, instituições, publicações e pré-publicações do GeneLink.</p>
+    </div>
+  </div>
+
+  <div class="container page-content">
+    <!-- Stats -->
+    <div class="stat-grid">
+      <div class="stat-card s-blue">
+        <div class="s-icon">👤</div>
+        <div><div class="s-num" id="s-users">—</div><div class="s-lbl">Usuários</div></div>
+      </div>
+      <div class="stat-card s-orange" style="cursor:pointer" onclick="switchTab('users')" title="Novos esta semana">
+        <div class="s-icon">🆕</div>
+        <div><div class="s-num" id="s-new-week">—</div><div class="s-lbl">Novos (7d)</div></div>
+      </div>
+      <div class="stat-card s-green">
+        <div class="s-icon">🏛️</div>
+        <div><div class="s-num" id="s-insts">—</div><div class="s-lbl">Instituições</div></div>
+      </div>
+      <div class="stat-card s-teal" style="cursor:pointer" onclick="switchTab('users')" title="Pesquisadores verificados">
+        <div class="s-icon">✓</div>
+        <div><div class="s-num" id="s-verified">—</div><div class="s-lbl">Verificados</div></div>
+      </div>
+      <div class="stat-card s-purple">
+        <div class="s-icon">📋</div>
+        <div><div class="s-num" id="s-posts">—</div><div class="s-lbl">Posts Fórum</div></div>
+      </div>
+      <div class="stat-card s-pink">
+        <div class="s-icon">🔬</div>
+        <div><div class="s-num" id="s-preprints">—</div><div class="s-lbl">Pré-publicações</div></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-nav">
+      <div class="tab-link active" onclick="switchTab('overview')">📊 Visão Geral</div>
+      <div class="tab-link" onclick="switchTab('users')">👤 Usuários</div>
+      <div class="tab-link" onclick="switchTab('institutions')">🏛️ Instituições</div>
+      <div class="tab-link" onclick="switchTab('forum')">📋 Fórum</div>
+      <div class="tab-link" onclick="switchTab('preprints')">🔬 Pré-publicações</div>
+      <div class="tab-link" id="flags-tab-link" onclick="switchTab('flags')">🚨 Moderação <span id="flags-tab-badge" style="display:none;background:#ef4444;color:#fff;border-radius:20px;font-size:.68rem;padding:1px 7px;margin-left:4px">0</span></div>
+    </div>
+
+    <!-- ── Tab: Visão Geral ─────────────────────────────────── -->
+    <div id="tab-overview" class="tab-panel active">
+      <div class="ov-grid">
+        <div class="ov-card">
+          <h3>👤 Últimos Cadastros</h3>
+          <div id="feed-users"><div class="loading-state"><div class="spinner spinner-dark"></div></div></div>
+          <a href="#" onclick="switchTab('users')" style="font-size:.8rem;color:var(--primary);display:block;margin-top:12px">Ver todos os usuários →</a>
+        </div>
+        <div class="ov-card">
+          <h3>📋 Últimos Posts</h3>
+          <div id="feed-posts"><div class="loading-state"><div class="spinner spinner-dark"></div></div></div>
+          <a href="#" onclick="switchTab('forum')" style="font-size:.8rem;color:var(--primary);display:block;margin-top:12px">Ver todos os posts →</a>
+        </div>
+        <div class="ov-card">
+          <h3>🔬 Últimas Pré-publicações</h3>
+          <div id="feed-preprints"><div class="loading-state"><div class="spinner spinner-dark"></div></div></div>
+          <a href="#" onclick="switchTab('preprints')" style="font-size:.8rem;color:var(--primary);display:block;margin-top:12px">Ver todas →</a>
+        </div>
+      </div>
+
+      <div class="ov-card" style="margin-top:20px">
+        <h3>⚡ Ações Rápidas</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <button class="btn btn-outline btn-sm" onclick="switchTab('institutions')">🏛️ Verificar Instituições Pendentes</button>
+          <button class="btn btn-outline btn-sm" onclick="switchTab('users')">👤 Gerenciar Usuários</button>
+          <button class="btn btn-outline btn-sm" onclick="switchTab('preprints')">🔬 Moderar Pré-publicações</button>
+          <button class="btn btn-outline btn-sm" onclick="switchTab('forum')">📋 Moderar Fórum</button>
+          <button class="btn btn-sm" style="background:#ef4444;color:#fff;border:none" onclick="switchTab('flags')">🚨 Ver Alertas de Moderação</button>
+        </div>
+      </div>
+
+      <!-- Moderation mini-feed on overview -->
+      <div class="ov-card" style="margin-top:20px;border-color:#fecaca">
+        <h3 style="color:#dc2626">🚨 Alertas de Moderação Recentes</h3>
+        <div id="feed-flags"><div class="loading-state"><div class="spinner spinner-dark"></div></div></div>
+        <a href="#" onclick="switchTab('flags')" style="font-size:.8rem;color:#dc2626;display:block;margin-top:12px">Ver todos os alertas →</a>
+      </div>
+    </div>
+
+    <!-- ── Tab: Moderação ──────────────────────────────────── -->
+    <div id="tab-flags" class="tab-panel">
+      <div class="card">
+        <div class="card-header" style="border-left:4px solid #ef4444">
+          <h2>🚨 Alertas de Moderação Automática</h2>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-sm btn-outline" onclick="loadFlags(false)" id="btn-flags-pending">Pendentes</button>
+            <button class="btn btn-sm btn-outline" onclick="loadFlags(true)" id="btn-flags-resolved">Resolvidos</button>
+          </div>
+        </div>
+        <div style="padding:14px 16px;background:#fff7f7;border-bottom:1px solid #fecaca;font-size:.82rem;color:#7f1d1d">
+          ⚠ Mensagens abaixo foram detectadas automaticamente como possivelmente contendo palavrões, conteúdo suspeito ou criminoso. Revise e marque como resolvido quando verificado.
+        </div>
+        <div id="flags-list" style="padding:0 16px 16px">
+          <div class="loading-state"><div class="spinner spinner-dark"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Usuários ───────────────────────────────────── -->
+    <div id="tab-users" class="tab-panel">
+      <div id="admin-alert-user" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Gerenciar Usuários</h2>
+          <span id="user-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+          <div class="search-bar">
+            <input class="search-input" id="user-search" type="text" placeholder="Buscar por usuário ou e-mail…" oninput="debounceUserSearch()">
+            <select id="user-filter-verified" class="search-input" style="flex:0 0 auto;width:auto" onchange="loadUsers()">
+              <option value="">Todos</option>
+              <option value="1">Apenas verificados</option>
+              <option value="0">Não verificados</option>
+              <option value="admin">Apenas admins</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuário</th><th>E-mail</th><th>Área de Pesquisa</th><th>Verificado</th><th>Admin</th><th>Cadastro</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="user-table-body">
+              <tr><td colspan="7"><div class="loading-state"><div class="spinner spinner-dark"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span id="user-page-info" style="font-size:.8rem;color:var(--text-muted)"></span>
+          <div class="pagination" id="user-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Instituições ───────────────────────────────── -->
+    <div id="tab-institutions" class="tab-panel">
+      <div id="admin-alert-inst" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Gerenciar Instituições</h2>
+          <span id="inst-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+          <div class="search-bar">
+            <select id="inst-filter" class="search-input" style="flex:0 0 auto;width:auto" onchange="loadInstitutions()">
+              <option value="">Todas</option>
+              <option value="pending">⏳ Pendentes de verificação</option>
+              <option value="verified">✓ Verificadas</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Instituição</th><th>CNPJ</th><th>Tipo</th><th>Cidade</th><th>Membros</th><th>Status</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="inst-table-body">
+              <tr><td colspan="7"><div class="loading-state"><div class="spinner spinner-dark"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Fórum ──────────────────────────────────────── -->
+    <div id="tab-forum" class="tab-panel">
+      <div id="admin-alert-forum" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Moderar Fórum</h2>
+          <span id="forum-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+          <div class="search-bar">
+            <input class="search-input" id="forum-search" type="text" placeholder="Buscar por título ou autor…" oninput="debounceForumSearch()">
+            <select id="forum-filter-cat" class="search-input" style="flex:0 0 auto;width:auto" onchange="loadForumPosts()">
+              <option value="">Todas as categorias</option>
+              <option value="Genética">Genética</option>
+              <option value="Bioinformática">Bioinformática</option>
+              <option value="Metodologia">Metodologia</option>
+              <option value="Discussão">Discussão</option>
+              <option value="Notícias">Notícias</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Título</th><th>Categoria</th><th>Autor</th><th>Comentários</th><th>Data</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="forum-table-body">
+              <tr><td colspan="6"><div class="loading-state"><div class="spinner spinner-dark"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+          <div class="pagination" id="forum-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Pré-publicações ────────────────────────────── -->
+    <div id="tab-preprints" class="tab-panel">
+      <div id="admin-alert-preprint" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Moderar Pré-publicações</h2>
+          <span id="preprint-count-label" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+          <div class="search-bar">
+            <select id="preprint-filter-type" class="search-input" style="flex:0 0 auto;width:auto" onchange="loadAdminPreprints()">
+              <option value="">Todos os tipos</option>
+              <option value="Hipótese">Hipótese</option>
+              <option value="Artigo Preliminar">Artigo Preliminar</option>
+              <option value="Revisão">Revisão</option>
+              <option value="Experimento">Experimento</option>
+            </select>
+            <select id="preprint-filter-status" class="search-input" style="flex:0 0 auto;width:auto" onchange="loadAdminPreprints()">
+              <option value="">Todos os status</option>
+              <option value="submitted">Submetidos</option>
+              <option value="under_review">Em revisão</option>
+              <option value="published">Publicados</option>
+              <option value="draft">Rascunhos</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Título</th><th>Tipo</th><th>Autor</th><th>Revisões</th><th>Status</th><th>Data</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="preprint-table-body">
+              <tr><td colspan="7"><div class="loading-state"><div class="spinner spinner-dark"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar exclusão -->
+<div id="confirm-modal" class="modal-bg">
+  <div class="modal-box">
+    <div style="font-size:2.2rem;text-align:center;margin-bottom:12px">⚠️</div>
+    <h3 style="font-size:1rem;font-weight:700;text-align:center;margin-bottom:8px" id="confirm-title">Confirmar exclusão</h3>
+    <p style="font-size:.87rem;color:var(--text-muted);text-align:center;margin-bottom:20px" id="confirm-body">Esta ação não pode ser desfeita.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-danger btn-block" id="confirm-ok-btn">Excluir</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('confirm-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Redefinir senha -->
+<div id="reset-pwd-modal" class="modal-bg">
+  <div class="modal-box">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px">🔑 Redefinir Senha</h3>
+    <p style="font-size:.83rem;color:var(--text-muted);margin-bottom:16px" id="reset-pwd-label">Defina uma nova senha para este usuário.</p>
+    <div id="reset-pwd-alert" class="alert"></div>
+    <div class="form-group">
+      <label class="form-label">Nova senha (mín. 6 caracteres)</label>
+      <input id="reset-pwd-input" type="password" class="form-input" placeholder="Nova senha">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary btn-block" onclick="confirmResetPwd()">Salvar</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('reset-pwd-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Alterar status de pré-publicação -->
+<div id="status-modal" class="modal-bg">
+  <div class="modal-box">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px">🔄 Alterar Status</h3>
+    <p style="font-size:.83rem;color:var(--text-muted);margin-bottom:16px" id="status-modal-label">Escolha o novo status desta pré-publicação.</p>
+    <div id="status-modal-alert" class="alert"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+        <input type="radio" name="new-status" value="submitted"> <span>📤 Submetido — visível para a comunidade</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+        <input type="radio" name="new-status" value="under_review"> <span>🔍 Em revisão — sinaliza que está sendo avaliado</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+        <input type="radio" name="new-status" value="published"> <span>✅ Publicado — destaque como publicação formal</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+        <input type="radio" name="new-status" value="draft"> <span>📝 Rascunho — ocultar da listagem pública</span>
+      </label>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary btn-block" onclick="confirmStatusChange()">Salvar</button>
+      <button class="btn btn-ghost btn-block" onclick="closeModal('status-modal')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/admin.js"></script>
+</body>
+</html>

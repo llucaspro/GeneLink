@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Perfil · GeneLink</title>
-<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-<link rel="stylesheet" href="/static/css/main.css">
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
 <style>
 .profile-header {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -38,6 +38,7 @@
       <div style="color:rgba(255,255,255,.75);font-size:.9rem" id="profile-fullname"></div>
     </div>
     <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)" onclick="repeatTutorial()">🎓 Repetir tutorial</button>
       <button class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)" id="edit-toggle-btn" onclick="toggleEdit()">Editar Perfil</button>
     </div>
   </div>
@@ -113,17 +114,17 @@
       <div class="card-body">
         <p style="color:var(--text-muted);font-size:.88rem;line-height:1.7">Use os links abaixo para acessar suas ferramentas de pesquisa e contribuições à comunidade.</p>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
-          <a href="/search" class="btn btn-outline">🔬 Histórico de Buscas de Genes</a>
-          <a href="/forum" class="btn btn-outline">📋 Fórum da Comunidade</a>
-          <a href="/chat" class="btn btn-outline">💬 Chat de Pesquisa</a>
-          <a href="/dashboard" class="btn btn-ghost">← Painel</a>
+          <a href="/gl/search" class="btn btn-outline">🔬 Histórico de Buscas de Genes</a>
+          <a href="/gl/forum" class="btn btn-outline">📋 Fórum da Comunidade</a>
+          <a href="/gl/chat" class="btn btn-outline">💬 Chat de Pesquisa</a>
+          <a href="/gl/dashboard" class="btn btn-ghost">← Painel</a>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<script src="/static/js/api.js"></script>
-<script src="/static/js/profile.js"></script>
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/profile.js"></script>
 </body>
 </html>

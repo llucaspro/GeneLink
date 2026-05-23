@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadCategories() {
   try {
-    const res = await fetch("/api/categories");
+    const res = await fetch("/gl/api/categories");
     const cats = await res.json();
     const sel = document.getElementById("filter-category");
     cats.forEach((c) => {
@@ -34,7 +34,7 @@ async function loadPosts() {
   try {
     const qs = new URLSearchParams({ page: currentPage });
     if (currentCategory) qs.set("category", currentCategory);
-    const res = await fetch(`/api/posts?${qs}`);
+    const res = await fetch(`/gl/api/posts?${qs}`);
     const data = await res.json();
     const posts = data.posts || [];
     if (!posts.length) {
@@ -55,7 +55,7 @@ async function loadPosts() {
               <span class="badge badge-primary">${escHtml(p.category)}</span>
               <span class="user-chip">
                 <span class="avatar-sm">${escHtml(p.avatar_initials || "?")}</span>
-                <strong>${escHtml(p.username)}</strong>
+                <a href="/gl/user/${escHtml(p.username)}" onclick="event.stopPropagation()" style="color:var(--primary);font-weight:700;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(p.username)}</a>
                 ${p.institution ? `<span style="color:var(--text-light)">· ${escHtml(p.institution)}</span>` : ""}
               </span>
               <span>${timeAgo(p.created_at)}</span>
@@ -83,7 +83,7 @@ function closeNewPostModal() {
 
 async function loadModalCategories() {
   try {
-    const res = await fetch("/api/categories");
+    const res = await fetch("/gl/api/categories");
     const cats = await res.json();
     const sel = document.getElementById("post-category");
     sel.innerHTML = cats.map((c) => `<option value="${c}">${c}</option>`).join("");

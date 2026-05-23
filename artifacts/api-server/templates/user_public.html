@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perfil · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.profile-header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  padding: 40px 0 36px;
+  color: #fff;
+}
+.profile-avatar-lg {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  font-weight: 700;
+  border: 3px solid rgba(255,255,255,.35);
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="profile-header">
+  <div class="container" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+    <div class="profile-avatar-lg" id="pub-initials">?</div>
+    <div>
+      <div style="font-size:.82rem;color:rgba(255,255,255,.65);margin-bottom:2px">Pesquisador</div>
+      <h1 style="color:#fff;font-size:1.6rem;margin-bottom:4px" id="pub-username"></h1>
+      <div style="color:rgba(255,255,255,.75);font-size:.9rem" id="pub-fullname"></div>
+    </div>
+    <div style="margin-left:auto">
+      <button class="btn btn-accent" id="msg-btn" onclick="startDM()" style="font-size:.9rem;padding:10px 20px">
+        💬 Enviar Mensagem Privada
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="container page-content">
+  <div id="pub-error" style="display:none;color:var(--danger);padding:12px;"></div>
+
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-header"><h2>Informações do Pesquisador</h2></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div>
+              <div class="form-label">Instituição</div>
+              <div id="pub-institution" style="font-size:.9rem">—</div>
+            </div>
+            <div>
+              <div class="form-label">Área de Pesquisa</div>
+              <div id="pub-area" style="font-size:.9rem">—</div>
+            </div>
+            <div>
+              <div class="form-label">Membro desde</div>
+              <div id="pub-joined" style="font-size:.9rem">—</div>
+            </div>
+            <div id="pub-verified-row" style="display:none">
+              <span class="badge badge-accent">✓ Pesquisador Verificado</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-header"><h2>Biografia</h2></div>
+        <div class="card-body">
+          <div id="pub-bio" style="font-size:.9rem;color:var(--text-muted);line-height:1.7">
+            Nenhuma biografia fornecida.
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <a href="/gl/dashboard" class="btn btn-ghost btn-sm">← Voltar ao Painel</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  if (!requireAuth()) return;
+  const username = window.location.pathname.split("/").pop();
+  injectNavbar("");
+  await loadPublicProfile(username);
+});
+
+async function loadPublicProfile(username) {
+  try {
+    const res = await apiFetch(`/users/${username}/profile`);
+    if (!res.ok) {
+      document.getElementById("pub-error").textContent = "Usuário não encontrado.";
+      document.getElementById("pub-error").style.display = "block";
+      document.getElementById("msg-btn").style.display = "none";
+      return;
+    }
+    const u = await res.json();
+    document.title = `@${u.username} · GeneLink`;
+    document.getElementById("pub-initials").textContent    = u.avatar_initials || u.username.slice(0,2).toUpperCase();
+    document.getElementById("pub-username").textContent    = `@${u.username}`;
+    document.getElementById("pub-fullname").textContent    = u.full_name || "";
+    document.getElementById("pub-institution").textContent = u.institution || "—";
+    document.getElementById("pub-area").textContent        = u.research_area || "—";
+    document.getElementById("pub-bio").textContent         = u.bio || "Nenhuma biografia fornecida.";
+    document.getElementById("pub-joined").textContent      = u.created_at ? formatDate(u.created_at) : "—";
+    if (u.is_verified) document.getElementById("pub-verified-row").style.display = "block";
+
+    // Esconde botão de mensagem se for o próprio perfil
+    const me = getUser();
+    if (me && me.username === u.username) {
+      document.getElementById("msg-btn").style.display = "none";
+    }
+    window._pubUsername = u.username;
+  } catch (e) {
+    document.getElementById("pub-error").textContent = "Erro ao carregar perfil.";
+    document.getElementById("pub-error").style.display = "block";
+  }
+}
+
+async function startDM() {
+  const btn = document.getElementById("msg-btn");
+  btn.disabled = true;
+  btn.textContent = "Aguarde…";
+  try {
+    const res = await apiFetch("/dm/start", {
+      method: "POST",
+      body: JSON.stringify({ username: window._pubUsername }),
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || "Erro ao iniciar conversa"); return; }
+    window.location.href = `/gl/dm?conv=${data.conversation_id}`;
+  } catch {
+    alert("Erro ao iniciar conversa. Tente novamente.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "💬 Enviar Mensagem Privada";
+  }
+}
+</script>
+</body>
+</html>

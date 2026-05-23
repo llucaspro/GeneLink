@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscar Pesquisadores · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  padding: 16px;
+}
+.user-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition: box-shadow .15s, border-color .15s, transform .1s;
+  cursor: pointer;
+}
+.user-card:hover {
+  box-shadow: 0 4px 18px rgba(27,79,114,.1);
+  border-color: var(--primary-light);
+  transform: translateY(-1px);
+}
+.user-card-avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.user-card-body { flex: 1; min-width: 0; }
+.user-card-username {
+  font-weight: 700;
+  font-size: .92rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.user-card-name {
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.user-card-meta {
+  font-size: .76rem;
+  color: var(--text-light);
+  margin-top: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.user-card-arrow {
+  color: var(--text-light);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.search-meta {
+  padding: 8px 4px;
+  font-size: .82rem;
+  color: var(--text-muted);
+}
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content">
+  <div class="page-header">
+    <h1>Buscar Pesquisadores</h1>
+    <p>Encontre outros pesquisadores por nome, username ou instituição.</p>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-body">
+      <form id="user-search-form" class="search-bar">
+        <input
+          type="text"
+          id="user-search-input"
+          class="form-control"
+          placeholder="Nome, @username ou instituição (ex: João Silva, USP, Genômica)"
+          autocomplete="off"
+          autofocus
+        >
+        <button type="submit" class="btn btn-primary" style="white-space:nowrap">
+          Buscar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="search-meta" id="user-search-meta"></div>
+
+  <div class="card">
+    <div id="user-results">
+      <div class="empty-state">
+        <div class="empty-state-icon">👥</div>
+        <h3>Pesquise por pesquisadores</h3>
+        <p style="font-size:.85rem;margin-top:6px">Digite um nome, username ou instituição para encontrar outros pesquisadores.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script src="/gl/static/js/user_search.js"></script>
+</body>
+</html>

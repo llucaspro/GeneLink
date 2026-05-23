@@ -1,17 +1,15 @@
-// Firebase Auth — Login social (Google, GitHub) + Email/Senha com verificação
-// Credenciais carregadas do backend via /api/firebase-config
+// Firebase Auth — Login social (Google) + Email/Senha com verificação
+// Credenciais carregadas do backend via /gl/api/firebase-config
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
   GoogleAuthProvider,
-  GithubAuthProvider,
   signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
   onAuthStateChanged,
-  signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 let firebaseApp = null;
@@ -19,7 +17,7 @@ let firebaseAuth = null;
 
 async function initFirebase() {
   try {
-    const res = await fetch("/api/firebase-config");
+    const res = await fetch("/gl/api/firebase-config");
     if (!res.ok) return;
     const config = await res.json();
     if (!config.apiKey) return;
@@ -27,11 +25,11 @@ async function initFirebase() {
     firebaseApp = initializeApp(config);
     firebaseAuth = getAuth(firebaseApp);
 
-    // Exibe os botões de login social
+    // Exibe o botão de login social
     const socialDiv = document.getElementById("social-login");
     if (socialDiv) socialDiv.style.display = "block";
 
-    // Verifica se já há uma sessão ativa (retorno de popup)
+    // Verifica se há sessão ativa (retorno de popup)
     onAuthStateChanged(firebaseAuth, async (fbUser) => {
       if (fbUser && !window._handlingFirebaseAuth) {
         window._handlingFirebaseAuth = true;
@@ -39,7 +37,7 @@ async function initFirebase() {
       }
     });
   } catch (e) {
-    // Firebase não configurado — botões permanecem ocultos
+    // Firebase não configurado — botões sociais permanecem ocultos
   }
 }
 
@@ -56,36 +54,22 @@ async function loginComGoogle() {
   }
 }
 
-async function loginComGitHub() {
-  if (!firebaseAuth) return;
-  try {
-    const provider = new GithubAuthProvider();
-    const result = await signInWithPopup(firebaseAuth, provider);
-    await handleFirebaseUser(result.user);
-  } catch (e) {
-    if (e.code !== "auth/popup-closed-by-user") {
-      alert("Erro ao entrar com GitHub: " + (e.message || e));
-    }
-  }
-}
-
 async function handleFirebaseUser(fbUser) {
   try {
     const idToken = await fbUser.getIdToken();
-    const res = await fetch("/api/firebase-auth", {
+    const res = await fetch("/gl/api/firebase-auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id_token: idToken,
         display_name: fbUser.displayName || "",
         email: fbUser.email || "",
-        photo_url: fbUser.photoURL || "",
       }),
     });
     const data = await res.json();
     if (res.ok && data.token) {
       setAuth(data.token, data.user);
-      window.location.href = "/dashboard";
+      window.location.href = "/gl/dashboard";
     } else {
       alert(data.error || "Falha ao autenticar com Firebase");
     }
@@ -94,35 +78,23 @@ async function handleFirebaseUser(fbUser) {
   }
 }
 
-// Cadastro com e-mail/senha + verificação de e-mail via Firebase
-async function registerWithEmail(email, password, extraData) {
-  if (!firebaseAuth) {
-    // Fallback para registro direto na API (sem Firebase configurado)
-    return null;
-  }
-  try {
-    const cred = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-    await sendEmailVerification(cred.user);
-    return cred.user;
-  } catch (e) {
-    throw e;
-  }
+// Cadastro com e-mail/senha + verificação via Firebase
+async function registerWithEmail(email, password) {
+  if (!firebaseAuth) return null;
+  const cred = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+  await sendEmailVerification(cred.user);
+  return cred.user;
 }
 
 // Login com e-mail/senha via Firebase
 async function loginWithEmail(email, password) {
   if (!firebaseAuth) return null;
-  try {
-    const cred = await signInWithEmailAndPassword(firebaseAuth, email, password);
-    return cred.user;
-  } catch (e) {
-    throw e;
-  }
+  const cred = await signInWithEmailAndPassword(firebaseAuth, email, password);
+  return cred.user;
 }
 
 // Expõe funções globalmente para uso nos templates
 window.loginComGoogle = loginComGoogle;
-window.loginComGitHub = loginComGitHub;
 window.registerWithEmail = registerWithEmail;
 window.loginWithEmail = loginWithEmail;
 window.getFirebaseAuth = () => firebaseAuth;

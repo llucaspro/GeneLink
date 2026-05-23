@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recursos Acadêmicos · GeneLink</title>
+<link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
+<link rel="stylesheet" href="/gl/static/css/main.css">
+<style>
+.resource-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+.resource-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 20px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; transition:box-shadow .2s,border-color .2s; }
+.resource-card:hover { box-shadow:var(--shadow-md); border-color:var(--primary-light); }
+.resource-icon { font-size:1.8rem; margin-bottom:10px; }
+.resource-name { font-size:.95rem; font-weight:700; color:var(--primary); margin-bottom:4px; }
+.resource-desc { font-size:.82rem; color:var(--text-muted); line-height:1.55; flex:1; }
+.resource-tag { font-size:.7rem; font-weight:600; background:var(--surface-alt); border:1px solid var(--border); border-radius:20px; padding:2px 8px; color:var(--text-muted); }
+.resource-footer { margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.section-heading { font-size:1.1rem; font-weight:700; color:var(--primary); margin:28px 0 14px; display:flex; align-items:center; gap:8px; }
+.section-heading::after { content:""; flex:1; height:1px; background:var(--border); }
+</style>
+</head>
+<body>
+<div id="navbar-placeholder"></div>
+
+<div class="container page-content">
+  <div class="page-header">
+    <h1>Recursos Acadêmicos</h1>
+    <p>Bases de dados, ferramentas e portais científicos essenciais para pesquisa genômica.</p>
+  </div>
+
+  <div class="section-heading">🧬 Genômica & Genes</div>
+  <div class="resource-grid">
+    <div class="resource-card">
+      <div class="resource-icon">🔬</div>
+      <div class="resource-name">NCBI Gene</div>
+      <div class="resource-desc">Base de dados de genes integrada do NCBI. Informações sobre genes, ortólogos, sequências e fenótipos associados.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">NCBI</span>
+        <a href="https://www.ncbi.nlm.nih.gov/gene" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🧪</div>
+      <div class="resource-name">Ensembl Genome Browser</div>
+      <div class="resource-desc">Navegador genômico do EMBL-EBI. Anotações de genomas de vertebrados e outros eucariontes.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">EMBL-EBI</span>
+        <a href="https://www.ensembl.org" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">📊</div>
+      <div class="resource-name">UCSC Genome Browser</div>
+      <div class="resource-desc">Visualização e análise de genomas anotados com dados de múltiplos organismos.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">UCSC</span>
+        <a href="https://genome.ucsc.edu" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🧬</div>
+      <div class="resource-name">OMIM</div>
+      <div class="resource-desc">Online Mendelian Inheritance in Man — catálogo de doenças genéticas e genes associados.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">NCBI</span>
+        <a href="https://www.omim.org" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🔗</div>
+      <div class="resource-name">ClinVar</div>
+      <div class="resource-desc">Repositório de variantes genéticas com significado clínico documentado.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">NCBI</span>
+        <a href="https://www.ncbi.nlm.nih.gov/clinvar" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🧫</div>
+      <div class="resource-name">dbSNP</div>
+      <div class="resource-desc">Base de dados de polimorfismos de nucleotídeo único (SNPs) e pequenas variações genéticas.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">NCBI</span>
+        <a href="https://www.ncbi.nlm.nih.gov/snp" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-heading">📚 Literatura Científica</div>
+  <div class="resource-grid">
+    <div class="resource-card">
+      <div class="resource-icon">📄</div>
+      <div class="resource-name">PubMed</div>
+      <div class="resource-desc">Base de dados bibliográfica do NCBI com mais de 35 milhões de citações biomédicas.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">NCBI</span>
+        <a href="https://pubmed.ncbi.nlm.nih.gov" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">📖</div>
+      <div class="resource-name">Europe PMC</div>
+      <div class="resource-desc">Repositório de artigos de ciências da vida com texto completo e dados de citações.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">EMBL-EBI</span>
+        <a href="https://europepmc.org" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🔓</div>
+      <div class="resource-name">bioRxiv</div>
+      <div class="resource-desc">Servidor de pré-prints de ciências biológicas. Resultados antes da revisão por pares.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">Cold Spring Harbor</span>
+        <a href="https://www.biorxiv.org" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-heading">🛠️ Ferramentas Bioinformáticas</div>
+  <div class="resource-grid">
+    <div class="resource-card">
+      <div class="resource-icon">⚙️</div>
+      <div class="resource-name">BLAST</div>
+      <div class="resource-desc">Basic Local Alignment Search Tool — busca por sequências semelhantes em bancos de dados.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">NCBI</span>
+        <a href="https://blast.ncbi.nlm.nih.gov" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🧩</div>
+      <div class="resource-name">UniProt</div>
+      <div class="resource-desc">Base de dados de sequências e funções de proteínas com anotações manuais e automáticas.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">UniProt</span>
+        <a href="https://www.uniprot.org" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🔭</div>
+      <div class="resource-name">STRING</div>
+      <div class="resource-desc">Rede de interações proteína-proteína com dados experimentais e previsões computacionais.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">SIB</span>
+        <a href="https://string-db.org" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🏗️</div>
+      <div class="resource-name">RCSB PDB</div>
+      <div class="resource-desc">Banco de Dados de Proteínas — estruturas 3D de proteínas, ácidos nucleicos e complexos.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">RCSB</span>
+        <a href="https://www.rcsb.org" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">🤖</div>
+      <div class="resource-name">AlphaFold DB</div>
+      <div class="resource-desc">Base de estruturas de proteínas previstas por IA. Cobertura de proteínas do proteoma humano.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">DeepMind/EMBL-EBI</span>
+        <a href="https://alphafold.ebi.ac.uk" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">📈</div>
+      <div class="resource-name">GEO — Gene Expression Omnibus</div>
+      <div class="resource-desc">Repositório de dados de expressão gênica e hibridização genômica de alta eficiência.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">NCBI</span>
+        <a href="https://www.ncbi.nlm.nih.gov/geo" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-heading">🌐 Portais Brasileiros</div>
+  <div class="resource-grid">
+    <div class="resource-card">
+      <div class="resource-icon">🇧🇷</div>
+      <div class="resource-name">Plataforma Lattes</div>
+      <div class="resource-desc">Sistema de currículo acadêmico e científico do Brasil — pesquisadores, grupos e instituições.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">CNPq</span>
+        <a href="https://lattes.cnpq.br" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">📰</div>
+      <div class="resource-name">SciELO Brasil</div>
+      <div class="resource-desc">Biblioteca eletrônica de periódicos científicos brasileiros em acesso aberto.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">FAPESP/CNPq</span>
+        <a href="https://www.scielo.br" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+    <div class="resource-card">
+      <div class="resource-icon">💰</div>
+      <div class="resource-name">FAPESP</div>
+      <div class="resource-desc">Fundação de Amparo à Pesquisa do Estado de São Paulo — editais, bolsas e projetos financiados.</div>
+      <div class="resource-footer">
+        <span class="resource-tag">FAPESP</span>
+        <a href="https://www.fapesp.br" target="_blank" rel="noopener" class="btn btn-sm btn-outline">Acessar →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/gl/static/js/api.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  requireAuth();
+  injectNavbar("/recursos");
+});
+</script>
+</body>
+</html>
