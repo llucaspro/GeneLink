@@ -6,3 +6,4 @@ PyJWT==2.8.0
 requests==2.32.3
 python-dotenv==1.0.1
 waitress==3.0.1
+firebase-admin==6.5.0
