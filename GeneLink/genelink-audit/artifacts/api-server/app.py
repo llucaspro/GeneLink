@@ -5,9 +5,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 
 class PrefixMiddleware:
-    """Strip the /gl path prefix so Flask routes work without modification.
-    The Replit shared proxy mounts this app at /gl but does NOT rewrite paths,
-    so Flask would receive /gl/login instead of /login. This middleware corrects that."""
+    """Strip the /gl path prefix so Flask routes work without modification."""
 
     def __init__(self, wsgi_app, prefix="/gl"):
         self.app = wsgi_app
@@ -20,12 +18,11 @@ class PrefixMiddleware:
             environ["SCRIPT_NAME"] = environ.get("SCRIPT_NAME", "") + self.prefix
         return self.app(environ, start_response)
 
+
 from flask import Flask, render_template, jsonify, request, make_response
-import requests as http_requests
 from flask_cors import CORS
 
 from db.init_db import init_db
-from db.connection import get_connection
 from routes.auth import auth_bp, token_required, page_login_required
 from routes.genes import genes_bp
 from routes.forum import forum_bp
@@ -35,7 +32,10 @@ from routes.admin import admin_bp
 from routes.inst_auth import inst_auth_bp
 from routes.partnerships import partnerships_bp
 from routes.preprints import preprints_bp
-from routes.dm import dm_bp
+
+# New Firestore-based routes (replaces old chat/DM SQL routes)
+from routes.chat_firestore import chat_bp
+from routes.dm_firestore import dm_bp
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("SESSION_SECRET", "genelink-dev-secret-2024")
@@ -51,6 +51,7 @@ app.register_blueprint(admin_bp, url_prefix="/api")
 app.register_blueprint(inst_auth_bp, url_prefix="/api")
 app.register_blueprint(partnerships_bp, url_prefix="/api")
 app.register_blueprint(preprints_bp, url_prefix="/api")
+app.register_blueprint(chat_bp, url_prefix="/api")
 app.register_blueprint(dm_bp, url_prefix="/api")
 
 app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix="/gl")
@@ -194,87 +195,6 @@ def user_public(username):
     return render_template("user_public.html")
 
 
-# ── Chat REST API (polling-based, reliable on all hosting) ──────────────────
-
-@app.route("/api/chat/messages", methods=["GET"])
-@token_required
-def chat_get_messages():
-    after_id = request.args.get("after", 0, type=int)
-    limit = request.args.get("limit", 50, type=int)
-    try:
-        conn = get_connection()
-        cur = conn.cursor()
-        if after_id:
-            cur.execute(
-                """SELECT cm.id, cm.message, cm.created_at, cm.username,
-                          u.avatar_initials
-                   FROM chat_messages cm
-                   LEFT JOIN users u ON u.id = cm.user_id
-                   WHERE cm.id > %s
-                   ORDER BY cm.id ASC LIMIT %s""",
-                (after_id, limit),
-            )
-        else:
-            cur.execute(
-                """SELECT cm.id, cm.message, cm.created_at, cm.username,
-                          u.avatar_initials
-                   FROM chat_messages cm
-                   LEFT JOIN users u ON u.id = cm.user_id
-                   ORDER BY cm.id DESC LIMIT %s""",
-                (limit,),
-            )
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
-        messages = [dict(r) for r in rows]
-        if not after_id:
-            messages = list(reversed(messages))
-        for m in messages:
-            if m.get("created_at"):
-                m["created_at"] = str(m["created_at"])
-        return jsonify({"messages": messages})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/chat/messages", methods=["POST"])
-@token_required
-def chat_send_message():
-    data = request.get_json() or {}
-    message = (data.get("message") or "").strip()
-    if not message:
-        return jsonify({"error": "Mensagem não pode estar vazia"}), 400
-    if len(message) > 2000:
-        return jsonify({"error": "Mensagem muito longa (máx 2000 caracteres)"}), 400
-    try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT username, avatar_initials FROM users WHERE id=%s", (request.user_id,))
-        user = cur.fetchone()
-        if not user:
-            cur.close(); conn.close()
-            return jsonify({"error": "Usuário não encontrado"}), 404
-        cur.execute(
-            """INSERT INTO chat_messages (user_id, username, message)
-               VALUES (%s, %s, %s)
-               RETURNING id, created_at""",
-            (request.user_id, user["username"], message),
-        )
-        row = cur.fetchone()
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({
-            "id": row["id"],
-            "username": user["username"],
-            "avatar_initials": user["avatar_initials"],
-            "message": message,
-            "created_at": str(row["created_at"]),
-        }), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 # ── Health check ────────────────────────────────────────────────────────────
 
 @app.route("/api/healthz")
@@ -282,7 +202,7 @@ def healthz():
     return jsonify({"status": "ok", "service": "GeneLink API"})
 
 
-# ── DB init (runs on every worker startup, safe with IF NOT EXISTS) ──────────
+# ── DB init (runs on startup) ────────────────────────────────────────────────
 
 init_db()
 
