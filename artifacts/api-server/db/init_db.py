@@ -395,9 +395,11 @@ def init_db():
         cur.close()
         conn.close()
         print(f"[GeneLink] Database initialized ({DB_TYPE}).")
+        return True
     except Exception as e:
         print(f"[GeneLink] Database init error: {e}")
-        raise
+        print("[GeneLink] App will start without database. Check DATABASE_URL env var.")
+        return False
 
 
 def _promote_default_admins(cur):
