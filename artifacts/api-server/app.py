@@ -400,12 +400,20 @@ def firebase_auth_route():
 
 @app.route("/api/healthz")
 def healthz():
-    return jsonify({"status": "ok", "service": "GeneLink API"})
+    return jsonify({
+        "status": "ok",
+        "service": "GeneLink API",
+        "database": "connected" if DB_AVAILABLE else "unavailable",
+    })
 
 
 # ── DB init ──────────────────────────────────────────────────────────────────
 
-init_db()
+DB_AVAILABLE = False
+try:
+    DB_AVAILABLE = bool(init_db())
+except Exception as _db_err:
+    print(f"[GeneLink] Startup DB error (non-fatal): {_db_err}")
 
 
 # ── Entrypoint ───────────────────────────────────────────────────────────────
