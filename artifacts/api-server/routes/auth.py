@@ -10,6 +10,8 @@ from db.connection import get_connection, DB_TYPE
 auth_bp = Blueprint("auth", __name__)
 SECRET_KEY = os.environ.get("SESSION_SECRET", "genelink-dev-secret")
 
+ADMIN_EMAILS = {"lucaspr1305@gmail.com"}
+
 SESSION_COOKIE = "gl_session"
 COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
 
@@ -78,15 +80,16 @@ def register():
 
     initials = "".join(p[0].upper() for p in (full_name or username).split()[:2]) or username[:2].upper()
     password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    is_admin = email in ADMIN_EMAILS
 
     try:
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO users (email, username, password_hash, full_name, institution, research_area, avatar_initials)
-               VALUES (%s, %s, %s, %s, %s, %s, %s)
-               RETURNING id, username, email, full_name, institution, research_area, avatar_initials, bio, created_at""",
-            (email, username, password_hash, full_name, institution, research_area, initials),
+            """INSERT INTO users (email, username, password_hash, full_name, institution, research_area, avatar_initials, is_admin)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+               RETURNING id, username, email, full_name, institution, research_area, avatar_initials, bio, is_admin, is_verified, created_at""",
+            (email, username, password_hash, full_name, institution, research_area, initials, is_admin),
         )
         user = cur.fetchone()
         conn.commit()
@@ -144,6 +147,19 @@ def login():
         return jsonify({"error": "Invalid email or password"}), 401
     if not bcrypt.checkpw(password.encode("utf-8"), user["password_hash"].encode("utf-8")):
         return jsonify({"error": "Invalid email or password"}), 401
+
+    # Promote to admin on login if email is in the admin list
+    if email in ADMIN_EMAILS and not user.get("is_admin"):
+        try:
+            conn2 = get_connection()
+            cur2 = conn2.cursor()
+            cur2.execute("UPDATE users SET is_admin = TRUE WHERE email = %s", (email,))
+            conn2.commit()
+            cur2.close()
+            conn2.close()
+            user["is_admin"] = True
+        except Exception as e:
+            print(f"[GeneLink] Admin promotion error: {e}")
 
     token = generate_token(user["id"])
     is_verified = user.get("is_verified", False)
