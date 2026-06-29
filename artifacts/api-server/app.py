@@ -1,7 +1,25 @@
 import os
 import sys
+import logging
 
 sys.path.insert(0, os.path.dirname(__file__))
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+_log = logging.getLogger("genelink")
+
+_IS_PRODUCTION = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
+
+# Fail loudly if SESSION_SECRET is missing or is the insecure default
+_SECRET = os.environ.get("SESSION_SECRET", "")
+if not _SECRET or _SECRET in ("genelink-dev-secret-2024", "genelink-dev-secret"):
+    if _IS_PRODUCTION:
+        raise RuntimeError(
+            "[GeneLink] SESSION_SECRET must be set to a strong random value in production."
+        )
+    _SECRET = "dev-only-insecure-secret-do-not-use-in-prod"
 
 
 class PrefixMiddleware:
@@ -16,10 +34,18 @@ class PrefixMiddleware:
             environ["SCRIPT_NAME"] = environ.get("SCRIPT_NAME", "") + self.prefix
         return self.app(environ, start_response)
 
-from flask import Flask, render_template, jsonify, request, make_response
-import requests as http_requests
-from flask_cors import CORS
 
+from flask import Flask, render_template, jsonify, request, make_response
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+from security.middleware import (
+    apply_security_headers,
+    build_cors_headers,
+    safe_error,
+    MAX_REQUEST_BYTES,
+    get_remote_ip,
+)
 from db.init_db import init_db
 from db.connection import get_connection
 from routes.auth import auth_bp, token_required, page_login_required
@@ -34,9 +60,22 @@ from routes.preprints import preprints_bp
 from routes.dm import dm_bp
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.environ.get("SESSION_SECRET", "genelink-dev-secret-2024")
+app.secret_key = _SECRET
+app.config["DEBUG"] = False
+app.config["PROPAGATE_EXCEPTIONS"] = False
+app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BYTES
 
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# ── Rate Limiter ─────────────────────────────────────────────────────────────
+
+limiter = Limiter(
+    key_func=get_remote_ip,
+    app=app,
+    default_limits=["300 per minute"],
+    storage_uri="memory://",
+    strategy="fixed-window",
+)
+
+# ── Blueprints ───────────────────────────────────────────────────────────────
 
 app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(genes_bp, url_prefix="/api")
@@ -51,21 +90,82 @@ app.register_blueprint(dm_bp, url_prefix="/api")
 
 app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix="/gl")
 
-_IS_PRODUCTION = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
-
+# ── CORS Preflight ────────────────────────────────────────────────────────────
 
 @app.before_request
-def force_https():
-    """Redireciona HTTP → HTTPS em produção (Render coloca X-Forwarded-Proto)."""
+def handle_options():
+    if request.method == "OPTIONS":
+        resp = app.make_default_options_response()
+        return build_cors_headers(request.headers.get("Origin", ""), resp)
+
+
+# ── Security Hooks ────────────────────────────────────────────────────────────
+
+@app.before_request
+def enforce_https_and_size():
     if _IS_PRODUCTION:
         proto = request.headers.get("X-Forwarded-Proto", "https")
         if proto == "http":
             from flask import redirect
-            url = request.url.replace("http://", "https://", 1)
-            return redirect(url, code=301)
+            return redirect(request.url.replace("http://", "https://", 1), code=301)
+
+    # Block oversized request bodies early
+    content_length = request.content_length
+    if content_length and content_length > MAX_REQUEST_BYTES:
+        return jsonify({"error": "Request body too large"}), 413
 
 
-# ── Frontend page routes ────────────────────────────────────────────────────
+@app.after_request
+def add_security_and_cors(response):
+    response = apply_security_headers(response)
+    response = build_cors_headers(request.headers.get("Origin", ""), response)
+    return response
+
+
+# ── Global Error Handlers ─────────────────────────────────────────────────────
+
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify({"error": "Bad request"}), 400
+
+
+@app.errorhandler(401)
+def unauthorized(e):
+    return jsonify({"error": "Unauthorized"}), 401
+
+
+@app.errorhandler(403)
+def forbidden(e):
+    return jsonify({"error": "Forbidden"}), 403
+
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"error": "Not found"}), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"error": "Method not allowed"}), 405
+
+
+@app.errorhandler(413)
+def payload_too_large(e):
+    return jsonify({"error": "Request body too large"}), 413
+
+
+@app.errorhandler(429)
+def rate_limited(e):
+    return jsonify({"error": "Too many requests. Please slow down."}), 429
+
+
+@app.errorhandler(500)
+def internal_error(e):
+    _log.error("Unhandled 500: %s", e)
+    return jsonify({"error": "An internal error occurred"}), 500
+
+
+# ── Frontend Page Routes ──────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -76,7 +176,7 @@ def index():
 def login_page():
     clear_storage = request.args.get("clear") == "1"
     resp = make_response(render_template("login.html", clear_storage=clear_storage))
-    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
     return resp
 
 
@@ -203,13 +303,14 @@ def user_public(username):
     return render_template("user_public.html")
 
 
-# ── Chat REST API ────────────────────────────────────────────────────────────
+# ── Chat REST API ─────────────────────────────────────────────────────────────
 
 @app.route("/api/chat/messages", methods=["GET"])
 @token_required
+@limiter.limit("60 per minute")
 def chat_get_messages():
     after_id = request.args.get("after", 0, type=int)
-    limit = request.args.get("limit", 50, type=int)
+    limit = min(request.args.get("limit", 50, type=int), 100)
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -242,19 +343,20 @@ def chat_get_messages():
             if m.get("created_at"):
                 m["created_at"] = str(m["created_at"])
         return jsonify({"messages": messages})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Could not load messages"}), 500
 
 
 @app.route("/api/chat/messages", methods=["POST"])
 @token_required
+@limiter.limit("20 per minute")
 def chat_send_message():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()
     if not message:
-        return jsonify({"error": "Mensagem não pode estar vazia"}), 400
+        return jsonify({"error": "Message cannot be empty"}), 400
     if len(message) > 2000:
-        return jsonify({"error": "Mensagem muito longa (máx 2000 caracteres)"}), 400
+        return jsonify({"error": "Message too long (max 2000 characters)"}), 400
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -262,11 +364,9 @@ def chat_send_message():
         user = cur.fetchone()
         if not user:
             cur.close(); conn.close()
-            return jsonify({"error": "Usuário não encontrado"}), 404
+            return jsonify({"error": "User not found"}), 404
         cur.execute(
-            """INSERT INTO chat_messages (user_id, username, message)
-               VALUES (%s, %s, %s)
-               RETURNING id, created_at""",
+            "INSERT INTO chat_messages (user_id, username, message) VALUES (%s, %s, %s) RETURNING id, created_at",
             (request.user_id, user["username"], message),
         )
         row = cur.fetchone()
@@ -280,18 +380,19 @@ def chat_send_message():
             "message": message,
             "created_at": str(row["created_at"]),
         }), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Could not send message"}), 500
 
 
-# ── Firebase Config ──────────────────────────────────────────────────────────
+# ── Firebase Config (rate-limited, no auth required by design) ───────────────
 
 @app.route("/api/firebase-config")
+@limiter.limit("30 per minute")
 def firebase_config():
     api_key = os.environ.get("FIREBASE_API_KEY", "")
     project_id = os.environ.get("FIREBASE_PROJECT_ID", "")
     if not api_key or not project_id:
-        return jsonify({"error": "Firebase não configurado"}), 404
+        return jsonify({"error": "Firebase not configured"}), 404
     return jsonify({
         "apiKey": api_key,
         "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN", ""),
@@ -303,21 +404,22 @@ def firebase_config():
     })
 
 
-# ── Firebase Auth — verifica ID token e sincroniza usuário ──────────────────
+# ── Firebase Auth ─────────────────────────────────────────────────────────────
 
 @app.route("/api/firebase-auth", methods=["POST"])
+@limiter.limit("10 per minute")
 def firebase_auth_route():
     import jwt as pyjwt
     import bcrypt
     import datetime
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     id_token = data.get("id_token", "")
     display_name = data.get("display_name", "")
     email_hint = data.get("email", "")
 
     if not id_token:
-        return jsonify({"error": "ID token obrigatório"}), 400
+        return jsonify({"error": "ID token required"}), 400
 
     try:
         import firebase_admin
@@ -342,7 +444,7 @@ def firebase_auth_route():
         name = decoded.get("name", display_name or "")
 
         if not email:
-            return jsonify({"error": "E-mail não disponível na conta"}), 400
+            return jsonify({"error": "E-mail not available in account"}), 400
 
         conn = get_connection()
         cur = conn.cursor()
@@ -367,7 +469,8 @@ def firebase_auth_route():
             cur.execute(
                 """INSERT INTO users (username, email, password_hash, full_name, avatar_initials)
                    VALUES (%s, %s, %s, %s, %s)
-                   RETURNING id, username, email, full_name, avatar_initials, institution, research_area, bio, created_at""",
+                   RETURNING id, username, email, full_name, avatar_initials,
+                             institution, research_area, bio, created_at""",
                 (username, email, dummy_hash, full_name, avatar_initials),
             )
             user = cur.fetchone()
@@ -377,26 +480,35 @@ def firebase_auth_route():
         conn.close()
 
         user_dict = dict(user)
-        SECRET_KEY = os.environ.get("SESSION_SECRET", "genelink-dev-secret-2024")
         token = pyjwt.encode(
-            {"user_id": user_dict["id"], "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)},
-            SECRET_KEY, algorithm="HS256"
+            {
+                "user_id": user_dict["id"],
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
+            },
+            _SECRET,
+            algorithm="HS256",
         )
         if isinstance(token, bytes):
             token = token.decode("utf-8")
         user_dict["created_at"] = str(user_dict.get("created_at", ""))
 
-        # Define o cookie de sessão (HttpOnly) para que page_login_required funcione
         from routes.auth import SESSION_COOKIE, COOKIE_MAX_AGE
         resp = make_response(jsonify({"token": token, "user": user_dict}))
-        resp.set_cookie(SESSION_COOKIE, token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="Lax")
+        resp.set_cookie(
+            SESSION_COOKIE, token,
+            max_age=COOKIE_MAX_AGE,
+            httponly=True,
+            samesite="Lax",
+            secure=_IS_PRODUCTION,
+        )
         return resp
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        _log.exception("firebase-auth error")
+        return jsonify({"error": "Authentication failed"}), 401
 
 
-# ── Health check ────────────────────────────────────────────────────────────
+# ── Health Check ──────────────────────────────────────────────────────────────
 
 @app.route("/api/healthz")
 def healthz():
@@ -407,23 +519,22 @@ def healthz():
     })
 
 
-# ── DB init ──────────────────────────────────────────────────────────────────
+# ── DB Init ───────────────────────────────────────────────────────────────────
 
 DB_AVAILABLE = False
 try:
     DB_AVAILABLE = bool(init_db())
 except Exception as _db_err:
-    print(f"[GeneLink] Startup DB error (non-fatal): {_db_err}")
+    _log.error("Startup DB error (non-fatal): %s", _db_err)
 
-
-# ── Entrypoint ───────────────────────────────────────────────────────────────
+# ── Entrypoint ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    print(f"[GeneLink] Starting on port {port}")
+    _log.info("Starting GeneLink on port %d", port)
     try:
         from waitress import serve
-        print("[GeneLink] Using waitress (production server)")
+        _log.info("Using waitress (production server)")
         serve(app, host="0.0.0.0", port=port, threads=4)
     except ImportError:
         app.run(host="0.0.0.0", port=port, debug=False)
