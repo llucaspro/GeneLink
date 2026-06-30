@@ -2,6 +2,7 @@ import os
 import time
 import jwt
 import bcrypt
+import logging
 import threading
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -14,6 +15,7 @@ from security.middleware import (
 )
 
 auth_bp = Blueprint("auth", __name__)
+_log = logging.getLogger("genelink.auth")
 SECRET_KEY = os.environ.get("SESSION_SECRET", "dev-only-insecure-secret-do-not-use-in-prod")
 
 _IS_PROD = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
@@ -194,10 +196,16 @@ def _try_firebase_login(email: str, password: str):
         )
         with _req.urlopen(http_req, timeout=8) as r:
             fb_data = _json.loads(r.read())
-    except _err.HTTPError:
+    except _err.HTTPError as _fe:
         # Wrong credentials or Firebase error → treat as auth failure
+        try:
+            _body = _fe.read().decode("utf-8", errors="ignore")
+        except Exception:
+            _body = ""
+        _log.warning("_try_firebase_login: Firebase REST error %s %s for %s", _fe.code, _body[:120], email)
         return None
-    except Exception:
+    except Exception as _ex:
+        _log.warning("_try_firebase_login: unexpected error for %s: %s", email, _ex)
         return None
 
     if not fb_data.get("idToken"):
@@ -312,22 +320,33 @@ def login():
     # Uniform "wrong credentials" — no user enumeration
     _WRONG = "Invalid email or password"
     if not user:
+        _log.warning("LOGIN FAIL – email not in DB: %s", raw_email)
         # Timing-safe dummy check
         bcrypt.checkpw(b"dummy", bcrypt.hashpw(b"dummy", bcrypt.gensalt()))
-        # Fallback: user might exist in Firebase but not in DB (e.g. DB write failed at register)
+        # Fallback: user might exist in Firebase but not in DB
+        _log.info("LOGIN – trying Firebase fallback for missing user: %s", raw_email)
         fb_resp = _try_firebase_login(raw_email, raw_password)
         if fb_resp is not None:
+            _log.info("LOGIN – Firebase fallback SUCCESS (user created): %s", raw_email)
             login_guard.record_success(ip, raw_email)
             return fb_resp
+        _log.warning("LOGIN – Firebase fallback also failed for: %s", raw_email)
         login_guard.record_failure(ip, raw_email)
         return jsonify({"error": _WRONG}), 401
 
-    if not bcrypt.checkpw(raw_password.encode("utf-8"), user["password_hash"].encode("utf-8")):
+    _log.info("LOGIN – user found in DB: %s  |  hash prefix: %.7s", raw_email, user["password_hash"])
+    hash_ok = bcrypt.checkpw(raw_password.encode("utf-8"), user["password_hash"].encode("utf-8"))
+    _log.info("LOGIN – bcrypt check result: %s for %s", hash_ok, raw_email)
+
+    if not hash_ok:
+        _log.warning("LOGIN – bcrypt mismatch, trying Firebase fallback: %s", raw_email)
         # Fallback: user in DB but has a Firebase dummy hash — verify via Firebase
         fb_resp = _try_firebase_login(raw_email, raw_password)
         if fb_resp is not None:
+            _log.info("LOGIN – Firebase fallback SUCCESS (hash updated): %s", raw_email)
             login_guard.record_success(ip, raw_email)
             return fb_resp
+        _log.warning("LOGIN – Firebase fallback also failed for: %s", raw_email)
         login_guard.record_failure(ip, raw_email)
         return jsonify({"error": _WRONG}), 401
 
@@ -368,6 +387,51 @@ def login():
     }))
     _set_session_cookie(resp, token)
     return resp
+
+
+# ── Forgot Password ───────────────────────────────────────────────────────────
+
+@auth_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    """
+    Backend fallback for sending a Firebase password reset email when the
+    client-side Firebase SDK is unavailable. Uses the Firebase REST API.
+    """
+    import urllib.request as _req
+    import urllib.error as _err
+    import json as _json
+
+    data = request.get_json(silent=True) or {}
+    raw_email = (data.get("email") or "").strip().lower()
+    if not raw_email:
+        return jsonify({"error": "E-mail obrigatório"}), 400
+
+    api_key = os.environ.get("FIREBASE_API_KEY", "").strip()
+    if not api_key:
+        return jsonify({"error": "Redefinição de senha não configurada. Contate o administrador."}), 503
+
+    try:
+        payload = _json.dumps({
+            "requestType": "PASSWORD_RESET",
+            "email": raw_email,
+        }).encode("utf-8")
+        http_req = _req.Request(
+            f"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={api_key}",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with _req.urlopen(http_req, timeout=8) as r:
+            r.read()
+    except _err.HTTPError as e:
+        body = e.read().decode("utf-8", errors="ignore")
+        _log.warning("forgot-password Firebase error: %s %s", e.code, body)
+        # Don't reveal whether the email is registered
+    except Exception as e:
+        _log.warning("forgot-password error: %s", e)
+
+    # Always return success to prevent email enumeration
+    return jsonify({"ok": True, "message": "Se o e-mail estiver cadastrado, você receberá um link de redefinição."})
 
 
 # ── Logout ────────────────────────────────────────────────────────────────────

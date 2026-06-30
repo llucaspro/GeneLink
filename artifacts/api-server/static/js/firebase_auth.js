@@ -11,6 +11,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -145,10 +146,27 @@ async function loginWithEmail(email, password) {
   return cred.user;
 }
 
+// Envia e-mail de redefinição de senha via Firebase
+async function enviarResetSenha(email) {
+  if (!firebaseAuth) {
+    // Firebase não configurado — tenta via backend
+    const res = await fetch("/gl/api/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Falha ao enviar e-mail");
+    return;
+  }
+  await sendPasswordResetEmail(firebaseAuth, email);
+}
+
 // Expõe funções globalmente para uso nos templates
 window.loginComGoogle    = loginComGoogle;
 window.registerWithEmail = registerWithEmail;
 window.loginWithEmail    = loginWithEmail;
+window.enviarResetSenha  = enviarResetSenha;
 window.getFirebaseAuth   = () => firebaseAuth;
 window.firebaseSignOut   = firebaseSignOut;
 

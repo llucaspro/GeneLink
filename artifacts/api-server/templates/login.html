@@ -133,7 +133,10 @@ body { background:var(--surface-alt); display:flex; flex-direction:column; min-h
           </div>
           <button type="submit" id="login-btn" class="btn btn-primary btn-block btn-lg" style="margin-top:8px">Entrar como Pesquisador</button>
         </form>
-        <p style="text-align:center;font-size:.8rem;color:var(--text-muted);margin-top:16px">
+        <p style="text-align:center;margin-top:10px">
+          <a href="#" id="forgot-pwd-link" style="font-size:.8rem;color:var(--primary)">Esqueceu sua senha?</a>
+        </p>
+        <p style="text-align:center;font-size:.8rem;color:var(--text-muted);margin-top:8px">
           Sem conta? <a href="#" onclick="showTab(tabRegister,secRegister);return false">Cadastre-se</a>
           &nbsp;·&nbsp;
           É uma universidade? <a href="#" onclick="showTab(tabInst,secInst);return false">Acesse aqui</a>
@@ -552,6 +555,41 @@ document.getElementById('inst-form').addEventListener('submit', async function(e
   } catch (err) {
     alertEl.className = 'alert alert-error show'; alertEl.textContent = err.message;
     btn.disabled = false; btn.textContent = 'Cadastrar Instituição';
+  }
+});
+
+// ── Esqueceu sua senha? ──────────────────────────────────────────────────────
+document.getElementById('forgot-pwd-link').addEventListener('click', async function(e) {
+  e.preventDefault();
+  const email = (document.getElementById('login-email').value || '').trim();
+  const input = email || prompt('Digite seu e-mail cadastrado:');
+  if (!input) return;
+
+  this.textContent = 'Enviando…';
+  this.style.pointerEvents = 'none';
+
+  try {
+    if (typeof enviarResetSenha === 'function') {
+      await enviarResetSenha(input.trim().toLowerCase());
+    } else {
+      // Firebase ainda não inicializado — usa backend
+      const res = await fetch('/gl/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: input.trim().toLowerCase() }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+    }
+    const alertEl = document.getElementById('login-alert');
+    alertEl.className = 'alert alert-success show';
+    alertEl.textContent = '✅ Se o e-mail estiver cadastrado, você receberá um link de redefinição de senha. Verifique sua caixa de entrada (e spam).';
+  } catch (err) {
+    const alertEl = document.getElementById('login-alert');
+    alertEl.className = 'alert alert-error show';
+    alertEl.textContent = err.message || 'Erro ao enviar e-mail. Tente novamente.';
+  } finally {
+    this.textContent = 'Esqueceu sua senha?';
+    this.style.pointerEvents = '';
   }
 });
 </script>
