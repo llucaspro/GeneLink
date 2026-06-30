@@ -7,9 +7,23 @@
 <link rel="icon" type="image/svg+xml" href="/gl/static/favicon.svg">
 <link rel="stylesheet" href="/gl/static/css/main.css">
 <style>
-.admin-header { background:linear-gradient(135deg,#1a252f,#2c3e50); color:#fff; padding:28px 0 24px; }
+.admin-header {
+  background: linear-gradient(135deg,#1a252f,#2c3e50);
+  color: #fff;
+  padding: 28px 0 32px;
+  position: relative;
+  overflow: hidden;
+}
+.admin-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0; right: 0;
+  height: 24px;
+  background: var(--surface-alt);
+  border-radius: 20px 20px 0 0;
+}
 .admin-header h1 { color:#fff; font-size:1.4rem; display:flex; align-items:center; gap:10px; }
-.admin-header p { color:rgba(255,255,255,.65); font-size:.84rem; margin-top:4px; }
+.admin-header p  { color:rgba(255,255,255,.65); font-size:.84rem; margin-top:4px; }
 
 /* Stat grid */
 .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:24px; }
@@ -25,13 +39,27 @@
 .s-pink   { background:#fdf2f8; border-color:#f5c6e7; } .s-pink .s-icon   { background:#fce7f3; } .s-pink .s-num   { color:#9d174d; }
 
 /* Tabs */
-.tab-nav { display:flex; border-bottom:2px solid var(--border); margin-bottom:24px; overflow-x:auto; gap:0; }
+.tab-nav { display:flex; border-bottom:2px solid var(--border); margin-bottom:24px; overflow-x:auto; gap:0; scrollbar-width:none; }
 .tab-nav::-webkit-scrollbar { display:none; }
-.tab-link { padding:10px 18px; font-size:.88rem; font-weight:600; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px; }
-.tab-link:hover { color:var(--primary); }
+.tab-link {
+  padding:10px 18px; font-size:.88rem; font-weight:600; color:var(--text-muted);
+  border-bottom:3px solid transparent; margin-bottom:-2px; cursor:pointer;
+  white-space:nowrap; display:flex; align-items:center; gap:6px;
+  transition: color .16s, border-color .16s, background .16s;
+  border-radius: 6px 6px 0 0;
+}
+.tab-link:hover { color:var(--primary); background: rgba(27,79,114,.04); }
 .tab-link.active { color:var(--primary); border-bottom-color:var(--primary); }
 .tab-panel { display:none; }
-.tab-panel.active { display:block; }
+.tab-panel.active { display:block; animation: gl-slide-up .22s cubic-bezier(.25,.46,.45,.94) both; }
+
+/* Ov-card stagger */
+.ov-grid .ov-card { animation: gl-slide-up .3s cubic-bezier(.25,.46,.45,.94) both; }
+.ov-grid .ov-card:nth-child(1) { animation-delay:.06s; }
+.ov-grid .ov-card:nth-child(2) { animation-delay:.12s; }
+.ov-grid .ov-card:nth-child(3) { animation-delay:.18s; }
+.ov-card { transition: box-shadow .2s, transform .2s; }
+.ov-card:hover { box-shadow: 0 5px 18px rgba(27,79,114,.1); transform: translateY(-2px); }
 
 /* Search bar */
 .search-bar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
@@ -101,7 +129,7 @@ tr:hover td { background:#f8faff; }
     </div>
   </div>
 
-  <div class="container page-content">
+  <div class="container page-content" style="padding-top:12px">
     <!-- Stats -->
     <div class="stat-grid">
       <div class="stat-card s-blue">
@@ -409,5 +437,47 @@ tr:hover td { background:#f8faff; }
 
 <script src="/gl/static/js/api.js"></script>
 <script src="/gl/static/js/admin.js"></script>
+<script>
+/* ── Counter animation for stat numbers ─────────────────── */
+function glAnimate(el, to) {
+  if (isNaN(to) || to < 0) return;
+  const dur = to > 20 ? 900 : 600;
+  const t0 = performance.now();
+  const tick = t => {
+    const p = Math.min((t - t0) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(to * ease);
+    if (p < 1) { requestAnimationFrame(tick); }
+    else { el.classList.add('num-loaded'); }
+  };
+  requestAnimationFrame(tick);
+}
+
+/* Observe stat number elements and animate on first non-dash change */
+['s-users','s-new-week','s-insts','s-verified','s-posts','s-preprints'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let done = false;
+  new MutationObserver(() => {
+    if (done) return;
+    const v = parseInt(el.textContent, 10);
+    if (!isNaN(v)) { done = true; el.textContent = '0'; glAnimate(el, v); }
+  }).observe(el, { childList: true, subtree: true, characterData: true });
+});
+
+/* ── Tab switch micro-animation ─────────────────────────── */
+const _origSwitch = typeof switchTab === 'function' ? switchTab : null;
+if (_origSwitch) {
+  window.switchTab = function(name) {
+    _origSwitch(name);
+    const panel = document.getElementById('tab-' + name);
+    if (panel) {
+      panel.style.animation = 'none';
+      panel.offsetHeight; /* reflow */
+      panel.style.animation = '';
+    }
+  };
+}
+</script>
 </body>
 </html>
