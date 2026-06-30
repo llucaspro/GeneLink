@@ -389,6 +389,48 @@ def login():
     return resp
 
 
+# ── Admin Recovery (TEMPORARY — remove after use) ─────────────────────────────
+
+@auth_bp.route("/admin-recovery", methods=["POST"])
+def admin_recovery():
+    """
+    TEMPORARY ENDPOINT — lets an admin reset their own password directly in the
+    DB without knowing the old password.  Gated by ADMIN_EMAILS; remove this
+    route once the admin has regained access.
+    """
+    data = request.get_json(silent=True) or {}
+    email       = (data.get("email") or "").strip().lower()
+    new_password = data.get("new_password") or ""
+
+    if email not in ADMIN_EMAILS:
+        return jsonify({"error": "Unauthorized"}), 403
+    if len(new_password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+
+    pw_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute(
+            "UPDATE users SET password_hash = %s WHERE email = %s RETURNING id, email",
+            (pw_hash, email),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as exc:
+        _log.exception("admin-recovery DB error")
+        return jsonify({"error": f"DB error: {exc}"}), 500
+
+    if not row:
+        return jsonify({"error": "User not found in database"}), 404
+
+    _log.warning("ADMIN RECOVERY used for %s — password hash updated in DB", email)
+    return jsonify({"ok": True, "message": f"Password updated for {email}. Log in now."})
+
+
 # ── Forgot Password ───────────────────────────────────────────────────────────
 
 @auth_bp.route("/forgot-password", methods=["POST"])

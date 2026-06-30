@@ -182,7 +182,18 @@ function setupForms() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) { showAlert(alertEl, data.error || "Falha no login", "error"); return; }
+      if (!res.ok) {
+        // Show error + reset-password link inline
+        alertEl.innerHTML =
+          `❌ ${data.error || "Email ou senha incorretos"} &nbsp;—&nbsp; ` +
+          `<a href="#" id="inline-forgot" style="color:inherit;font-weight:600;text-decoration:underline">Redefinir senha</a>`;
+        alertEl.className = "alert alert-error show";
+        document.getElementById("inline-forgot")?.addEventListener("click", e => {
+          e.preventDefault();
+          document.getElementById("forgot-pwd-link")?.click();
+        });
+        return;
+      }
       setAuth(data.token, data.user);
       window.location.href = "/gl/dashboard";
 
@@ -222,8 +233,47 @@ function setupForms() {
           await registerWithEmail(email, password);
         } catch (fbErr) {
           const code = fbErr.code || "";
-          if (code === "auth/email-already-in-use") { showAlert(alertEl, "Este e-mail já está cadastrado.", "error"); return; }
-          if (code === "auth/weak-password")        { showAlert(alertEl, "Senha fraca. Use pelo menos 8 caracteres.", "error"); return; }
+          if (code === "auth/weak-password") { showAlert(alertEl, "Senha fraca. Use pelo menos 8 caracteres.", "error"); return; }
+          if (code === "auth/email-already-in-use") {
+            // Email exists in Firebase (partial previous registration) — try logging in directly
+            showAlert(alertEl, "⏳ Este e-mail já existe — tentando entrar automaticamente…", "info");
+            try {
+              const fbUser = await loginWithEmail(email, password);
+              if (fbUser) {
+                const idToken = await fbUser.getIdToken();
+                const res = await fetch("/gl/api/firebase-auth", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id_token: idToken, email: fbUser.email, display_name: fbUser.displayName || "" }),
+                });
+                const data = await res.json();
+                if (res.ok && data.token) {
+                  setAuth(data.token, data.user);
+                  window.location.href = "/gl/dashboard";
+                  return;
+                }
+              }
+            } catch (_) {}
+            // Auto-login failed — try backend fallback
+            try {
+              const res = await fetch("/gl/api/login", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+              });
+              const data = await res.json();
+              if (res.ok && data.token) {
+                setAuth(data.token, data.user);
+                window.location.href = "/gl/dashboard";
+                return;
+              }
+            } catch (_) {}
+            // Both failed — tell user to reset password
+            alertEl.innerHTML =
+              `❌ Este e-mail já está cadastrado mas a senha não confere. ` +
+              `<a href="#" onclick="document.getElementById('tab-login').click();setTimeout(()=>document.getElementById('forgot-pwd-link')?.click(),200);return false" ` +
+              `style="color:inherit;font-weight:600;text-decoration:underline">Redefinir senha agora →</a>`;
+            alertEl.className = "alert alert-error show";
+            return;
+          }
           // Other Firebase errors — fall through to direct API register below
         }
 
