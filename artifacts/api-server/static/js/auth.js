@@ -37,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
         `</div>`;
       header.insertAdjacentElement("afterend", banner);
 
-      // "Sair e Testar": limpa localStorage + faz signOut do Firebase antes de recarregar
       document.getElementById("btn-sair-testar").addEventListener("click", async () => {
         clearAuth();
         if (typeof firebaseSignOut === "function") await firebaseSignOut();
@@ -145,17 +144,15 @@ function setupForms() {
     hideAlert(alertEl);
 
     try {
+      // 1. Tenta Firebase apenas se disponível E e-mail verificado
       const fbAuth = typeof getFirebaseAuth === "function" ? getFirebaseAuth() : null;
       if (fbAuth && typeof loginWithEmail === "function") {
         try {
           const fbUser = await loginWithEmail(email, password);
-          if (fbUser) {
-            if (!fbUser.emailVerified) {
-              showAlert(alertEl, "E-mail não verificado. Verifique sua caixa de entrada e clique no link antes de entrar.", "error");
-              return;
-            }
+          if (fbUser && fbUser.emailVerified) {
+            // Conta Firebase verificada → usa token Firebase
             const idToken = await fbUser.getIdToken();
-            const res  = await fetch("/gl/api/firebase-auth", {
+            const res = await fetch("/gl/api/firebase-auth", {
               method: "POST", headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ id_token: idToken, email: fbUser.email, display_name: fbUser.displayName || "" }),
             });
@@ -165,15 +162,18 @@ function setupForms() {
             window.location.href = "/gl/dashboard";
             return;
           }
+          // fbUser existe mas e-mail não verificado → cai no fallback da API abaixo
         } catch (fbErr) {
           const code = fbErr.code || "";
           if (code === "auth/too-many-requests") {
             showAlert(alertEl, "Muitas tentativas. Tente novamente mais tarde.", "error"); return;
           }
+          // Qualquer outro erro Firebase (invalid-credential, user-not-found, etc.)
+          // → cai no fallback da API abaixo
         }
       }
 
-      // Fallback: login direto na API
+      // 2. Fallback: login direto na API (contas existentes, ou Firebase sem verificação)
       const res  = await fetch("/gl/api/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -234,7 +234,7 @@ function setupForms() {
         document.getElementById("login-section").style.display = "block";
         document.getElementById("register-section").style.display = "none";
         showAlert(document.getElementById("login-alert"),
-          "✅ Conta criada! Enviamos um e-mail de verificação. Confirme antes de entrar.", "success");
+          "✅ Conta criada! Você já pode entrar com seu e-mail e senha.", "success");
         return;
       }
 
