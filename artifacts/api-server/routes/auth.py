@@ -15,6 +15,7 @@ from security.middleware import (
 )
 
 auth_bp = Blueprint("auth", __name__)
+from routes.security import limiter  # shared rate-limiter instance
 _log = logging.getLogger("genelink.auth")
 SECRET_KEY = os.environ.get("SESSION_SECRET", "dev-only-insecure-secret-do-not-use-in-prod")
 
@@ -392,6 +393,7 @@ def login():
 # ── Admin Recovery (TEMPORARY — remove after use) ─────────────────────────────
 
 @auth_bp.route("/admin-recovery", methods=["POST"])
+@limiter.limit("3 per minute; 5 per hour")
 def admin_recovery():
     """
     TEMPORARY ENDPOINT — lets an admin reset their own password directly in the
@@ -422,7 +424,7 @@ def admin_recovery():
         conn.close()
     except Exception as exc:
         _log.exception("admin-recovery DB error")
-        return jsonify({"error": f"DB error: {exc}"}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
     if not row:
         return jsonify({"error": "User not found in database"}), 404
@@ -625,6 +627,7 @@ def get_user_public_profile(username):
 # ── Availability Check (rate-limited, anti-enumeration) ──────────────────────
 
 @auth_bp.route("/check-availability", methods=["GET"])
+@limiter.limit("30 per minute; 200 per hour")
 def check_availability():
     username = (request.args.get("username") or "").strip()[:50]
     email = (request.args.get("email") or "").strip().lower()[:255]
