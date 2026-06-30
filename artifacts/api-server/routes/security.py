@@ -67,7 +67,7 @@ def apply_security_headers(response):
     h["X-Frame-Options"] = "DENY"
 
     # Filtro XSS para browsers legados
-    h["X-XSS-Protection"] = "1; mode=block"
+    h["X-XSS-Protection"] = "0"
 
     # Limita vazamento de referrer
     h["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -88,7 +88,7 @@ def apply_security_headers(response):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: https:; "
-        "connect-src 'self'; "
+        "connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; "
         "frame-ancestors 'none';"
     )
 
