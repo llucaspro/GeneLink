@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify
 from routes.auth import token_required
 from db.connection import get_connection
 from security.middleware import is_safe_external_url, sanitize_string
+from routes.security import limiter
 
 _log = logging.getLogger("genelink.institutions")
 
@@ -47,7 +48,7 @@ def _cnpj_type_hint(nat_desc: str) -> str:
 # ── CNPJ Lookup (SSRF-protected) ──────────────────────────────────────────────
 
 @institutions_bp.route("/cnpj/<cnpj_raw>", methods=["GET"])
-@token_required
+@limiter.limit("15 per minute")
 def lookup_cnpj(cnpj_raw):
     """Consulta CNPJ via cnpj.ws. Requires auth. SSRF protection: only hits whitelisted host."""
     digits = re.sub(r'\D', '', cnpj_raw)
