@@ -62,7 +62,7 @@ def list_conversations():
             result.append(d)
         return jsonify({"conversations": result})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Iniciar / obter conversa com um usuário ───────────────────────────────────
@@ -114,7 +114,7 @@ def start_conversation():
         conn.close()
         return jsonify({"conversation_id": conv_id, "other": dict(other)}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Mensagens de uma conversa ─────────────────────────────────────────────────
@@ -173,7 +173,7 @@ def get_messages(conv_id):
         conn.close()
         return jsonify({"messages": messages})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Enviar mensagem ───────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ def send_message(conv_id):
             "is_flagged": is_flagged,
         }), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Total de mensagens não lidas ──────────────────────────────────────────────
@@ -284,7 +284,7 @@ def public_profile(username):
         d["created_at"] = str(d["created_at"]) if d.get("created_at") else None
         return jsonify(d)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Alertas de moderação (somente admin) ─────────────────────────────────────
@@ -320,7 +320,7 @@ def admin_flags():
             flags.append(d)
         return jsonify({"flags": flags})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @dm_bp.route("/admin/flags/<int:flag_id>/resolve", methods=["POST"])
@@ -340,4 +340,4 @@ def resolve_flag(flag_id):
         conn.close()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
