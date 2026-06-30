@@ -248,6 +248,22 @@ def create_institution():
         )
         conn.commit()
         cur.close(); conn.close()
+
+        # ── Send "cadastro recebido, em análise" email in background ──────────
+        if email:
+            base_url = os.environ.get("BASE_URL", "https://genelink-fcz4.onrender.com")
+            cnpj_display = _fmt_cnpj(cnpj) if cnpj else "N/A"
+            try:
+                from routes.email_utils import send_institution_pending_email
+                threading.Thread(
+                    target=send_institution_pending_email,
+                    args=(name, cnpj_display, email, base_url),
+                    daemon=True,
+                ).start()
+                _log.info("Pending-approval email queued for institution '%s' -> %s", name, email)
+            except Exception:
+                _log.warning("Could not queue pending-approval email for institution '%s'", name)
+
         return jsonify(_institution_to_dict(inst)), 201
     except Exception:
         _log.exception("create_institution error")
