@@ -4,7 +4,9 @@ All DB interactions use parameterized queries.
 Error responses never expose internal exception details.
 """
 
+import os
 import logging
+import threading
 from flask import Blueprint, request, jsonify
 from routes.auth import token_required
 from db.connection import get_connection
@@ -111,7 +113,6 @@ def admin_list_institutions():
 @token_required
 @_require_admin
 def verify_institution(inst_id):
-    import os
     data = request.get_json(silent=True) or {}
     verified = bool(data.get("verified", True))
     now = datetime.now(timezone.utc).isoformat()
@@ -136,18 +137,34 @@ def verify_institution(inst_id):
         conn.commit()
         cur.close(); conn.close()
 
+        # ── Send approval e-mail in background thread ──────────────────────────
         if verified and inst.get("email"):
+            base_url = os.environ.get("BASE_URL", "https://genelink-fcz4.onrender.com")
+            inst_name  = inst["name"]
+            inst_short = inst["short_name"] or inst["name"]
+            to_email   = inst["email"]
+            login_url  = f"{base_url}/login#instituicao"
             try:
                 from routes.email_utils import send_institution_approval_email
-                base_url = os.environ.get("BASE_URL", "https://genelink.app")
-                send_institution_approval_email(
-                    inst_name=inst["name"],
-                    inst_short=inst["short_name"] or inst["name"],
-                    to_email=inst["email"],
-                    login_url=f"{base_url}/login#instituicao",
+                threading.Thread(
+                    target=send_institution_approval_email,
+                    kwargs={
+                        "inst_name" : inst_name,
+                        "inst_short": inst_short,
+                        "to_email"  : to_email,
+                        "login_url" : login_url,
+                    },
+                    daemon=True,
+                ).start()
+                _log.info(
+                    "Approval email queued for institution %d ('%s') -> %s",
+                    inst_id, inst_name, to_email,
                 )
             except Exception:
-                pass
+                _log.exception(
+                    "Failed to queue approval email for institution %d ('%s')",
+                    inst_id, inst_name,
+                )
 
         return jsonify({"ok": True, "verified": verified})
     except Exception:
