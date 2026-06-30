@@ -133,7 +133,7 @@ def inst_register():
     # Send "aguardando aprovação" e-mail in background
     try:
         from routes.email_utils import send_institution_pending_email
-        base_url = os.environ.get("BASE_URL", "https://genelink-fcz4.onrender.com")
+        base_url = os.environ.get("BASE_URL", "https://genelink.app")
         threading.Thread(
             target=send_institution_pending_email,
             args=(name, cnpj or "N/A", email, base_url),
