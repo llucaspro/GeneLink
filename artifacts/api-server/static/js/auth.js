@@ -30,12 +30,19 @@ document.addEventListener("DOMContentLoaded", () => {
             `style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;` +
             `padding:4px 12px;font-size:.78rem;cursor:pointer;font-weight:600">` +
             `Ir ao Painel →</button>` +
-          `<button onclick="clearAuth();location.reload()" ` +
+          `<button id="btn-sair-testar" ` +
             `style="background:#dc2626;color:#fff;border:none;border-radius:6px;` +
             `padding:4px 12px;font-size:.78rem;cursor:pointer;font-weight:600">` +
             `Sair e Testar</button>` +
         `</div>`;
       header.insertAdjacentElement("afterend", banner);
+
+      // "Sair e Testar": limpa localStorage + faz signOut do Firebase antes de recarregar
+      document.getElementById("btn-sair-testar").addEventListener("click", async () => {
+        clearAuth();
+        if (typeof firebaseSignOut === "function") await firebaseSignOut();
+        window.location.reload();
+      });
     }
   }
 
@@ -45,9 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function setupTabs() {
-  const loginTab    = document.getElementById("tab-login");
-  const registerTab = document.getElementById("tab-register");
-  const loginForm   = document.getElementById("login-section");
+  const loginTab     = document.getElementById("tab-login");
+  const registerTab  = document.getElementById("tab-register");
+  const loginForm    = document.getElementById("login-section");
   const registerForm = document.getElementById("register-section");
   if (!loginTab || !registerTab) return;
   loginTab.addEventListener("click", () => {
@@ -127,9 +134,9 @@ function setupForms() {
   // ── LOGIN ──────────────────────────────────────────────────────────────────
   document.getElementById("login-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const alertEl = document.getElementById("login-alert");
-    const btn     = document.getElementById("login-btn");
-    const email   = document.getElementById("login-email").value.trim();
+    const alertEl  = document.getElementById("login-alert");
+    const btn      = document.getElementById("login-btn");
+    const email    = document.getElementById("login-email").value.trim();
     const password = document.getElementById("login-password").value;
 
     if (!email || !password) { showAlert(alertEl, "Por favor, insira seu e-mail e senha.", "error"); return; }
@@ -138,7 +145,6 @@ function setupForms() {
     hideAlert(alertEl);
 
     try {
-      // 1. Tenta Firebase (se configurado)
       const fbAuth = typeof getFirebaseAuth === "function" ? getFirebaseAuth() : null;
       if (fbAuth && typeof loginWithEmail === "function") {
         try {
@@ -164,11 +170,10 @@ function setupForms() {
           if (code === "auth/too-many-requests") {
             showAlert(alertEl, "Muitas tentativas. Tente novamente mais tarde.", "error"); return;
           }
-          // Outros erros: fallback para API
         }
       }
 
-      // 2. Fallback: login direto na API
+      // Fallback: login direto na API
       const res  = await fetch("/gl/api/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -189,13 +194,13 @@ function setupForms() {
   // ── CADASTRO ───────────────────────────────────────────────────────────────
   document.getElementById("register-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const alertEl      = document.getElementById("register-alert");
-    const btn          = document.getElementById("register-btn");
-    const full_name    = document.getElementById("reg-fullname").value.trim();
-    const username     = document.getElementById("reg-username").value.trim();
-    const email        = document.getElementById("reg-email").value.trim();
-    const password     = document.getElementById("reg-password").value;
-    const institution  = document.getElementById("reg-institution").value.trim();
+    const alertEl       = document.getElementById("register-alert");
+    const btn           = document.getElementById("register-btn");
+    const full_name     = document.getElementById("reg-fullname").value.trim();
+    const username      = document.getElementById("reg-username").value.trim();
+    const email         = document.getElementById("reg-email").value.trim();
+    const password      = document.getElementById("reg-password").value;
+    const institution   = document.getElementById("reg-institution").value.trim();
     const research_area = document.getElementById("reg-area").value.trim();
 
     if (!username || !email || !password) { showAlert(alertEl, "Usuário, e-mail e senha são obrigatórios.", "error"); return; }
@@ -209,7 +214,6 @@ function setupForms() {
 
     try {
       const fbAuth = typeof getFirebaseAuth === "function" ? getFirebaseAuth() : null;
-
       if (fbAuth && typeof registerWithEmail === "function") {
         try {
           await registerWithEmail(email, password);
@@ -224,16 +228,11 @@ function setupForms() {
           body: JSON.stringify({ full_name, username, email, password, institution, research_area }),
         });
 
-        const tabLogin    = document.getElementById("tab-login");
-        const secLogin    = document.getElementById("login-section");
-        const secRegister = document.getElementById("register-section");
-        if (tabLogin) {
-          [document.getElementById("tab-login"), document.getElementById("tab-register"), document.getElementById("tab-inst")]
-            .forEach(t => t && t.classList.remove("active"));
-          tabLogin.classList.add("active");
-          secLogin.style.display = "block";
-          secRegister.style.display = "none";
-        }
+        [document.getElementById("tab-login"), document.getElementById("tab-register"), document.getElementById("tab-inst")]
+          .forEach(t => t && t.classList.remove("active"));
+        document.getElementById("tab-login").classList.add("active");
+        document.getElementById("login-section").style.display = "block";
+        document.getElementById("register-section").style.display = "none";
         showAlert(document.getElementById("login-alert"),
           "✅ Conta criada! Enviamos um e-mail de verificação. Confirme antes de entrar.", "success");
         return;
