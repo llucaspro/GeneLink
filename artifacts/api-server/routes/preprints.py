@@ -57,7 +57,7 @@ def list_preprints():
             r["updated_at"] = str(r.get("updated_at") or "")
         return jsonify({"preprints": rows, "total": total, "page": page})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @preprints_bp.route("/preprints/mine", methods=["GET"])
@@ -82,7 +82,7 @@ def my_preprints():
             r["updated_at"] = str(r.get("updated_at") or "")
         return jsonify({"preprints": rows})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @preprints_bp.route("/preprints/<int:preprint_id>", methods=["GET"])
@@ -124,7 +124,7 @@ def get_preprint(preprint_id):
         result["reviews"] = reviews
         return jsonify(result)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @preprints_bp.route("/preprints", methods=["POST"])
@@ -164,7 +164,7 @@ def create_preprint():
         row["created_at"] = str(row.get("created_at") or "")
         return jsonify(row), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @preprints_bp.route("/preprints/<int:preprint_id>", methods=["PUT"])
@@ -204,7 +204,7 @@ def update_preprint(preprint_id):
         cur.close(); conn.close()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @preprints_bp.route("/preprints/<int:preprint_id>", methods=["DELETE"])
@@ -227,7 +227,7 @@ def delete_preprint(preprint_id):
         cur.close(); conn.close()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @preprints_bp.route("/preprints/<int:preprint_id>/reviews", methods=["POST"])
@@ -270,4 +270,4 @@ def add_review(preprint_id):
         row["created_at"] = str(row.get("created_at") or "")
         return jsonify(row), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
