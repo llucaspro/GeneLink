@@ -658,3 +658,235 @@ tr:hover td { background: #f9fafc; }
   color: #dc2626;
   border-color: #fca5a5;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FLUIDITY & MICRO-ANIMATIONS — GeneLink Enhanced UX v2
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+@keyframes gl-enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gl-slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gl-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+@keyframes gl-modal-in {
+  from { opacity: 0; transform: scale(.94) translateY(-10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes gl-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* ── Page entrance ─────────────────────────────────────────── */
+.page-content {
+  animation: gl-enter .35s cubic-bezier(.25,.46,.45,.94) both;
+}
+
+/* ── Tab panels — smoother & slide ────────────────────────── */
+.tab-panel {
+  animation: gl-slide-up .24s cubic-bezier(.25,.46,.45,.94) both;
+}
+
+/* ── Card hover lift ───────────────────────────────────────── */
+.card {
+  transition: box-shadow .22s, transform .22s;
+  will-change: transform, box-shadow;
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ── Lux-card (dashboard cards) ────────────────────────────── */
+.lux-card {
+  transition: box-shadow .22s, transform .22s;
+  will-change: transform, box-shadow;
+}
+.lux-card:hover {
+  box-shadow: 0 10px 32px rgba(27,79,114,.13);
+  transform: translateY(-2px);
+}
+
+/* ── Stat + metric cards — staggered entrance ──────────────── */
+.stat-card, .metric-card {
+  animation: gl-slide-up .32s cubic-bezier(.25,.46,.45,.94) both;
+  transition: box-shadow .22s, transform .22s;
+  will-change: transform;
+}
+.stat-card:hover  { transform: translateY(-4px); box-shadow: 0 8px 22px rgba(27,79,114,.14); }
+.metric-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(27,79,114,.13); }
+
+.stat-grid .stat-card:nth-child(1) { animation-delay: .05s; }
+.stat-grid .stat-card:nth-child(2) { animation-delay: .10s; }
+.stat-grid .stat-card:nth-child(3) { animation-delay: .15s; }
+.stat-grid .stat-card:nth-child(4) { animation-delay: .20s; }
+.stat-grid .stat-card:nth-child(5) { animation-delay: .25s; }
+.stat-grid .stat-card:nth-child(6) { animation-delay: .30s; }
+
+.metric-row .metric-card:nth-child(1) { animation-delay: .07s; }
+.metric-row .metric-card:nth-child(2) { animation-delay: .14s; }
+.metric-row .metric-card:nth-child(3) { animation-delay: .21s; }
+
+/* ── Buttons — satisfying press ────────────────────────────── */
+.btn {
+  transition: background .15s, color .15s, border-color .15s,
+              transform .12s cubic-bezier(.25,.46,.45,.94),
+              box-shadow .15s, opacity .15s;
+  will-change: transform;
+}
+.btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(27,79,114,.2);
+}
+.btn:not(:disabled):active {
+  transform: scale(.96) translateY(0);
+  box-shadow: none;
+  transition-duration: .06s;
+}
+
+/* ── Navbar links ──────────────────────────────────────────── */
+.navbar-nav a {
+  transition: background .15s, color .15s, transform .14s;
+}
+.navbar-nav a:hover { transform: translateY(-1px); }
+
+/* ── Avatar pulse on hover ─────────────────────────────────── */
+.avatar {
+  transition: transform .16s, box-shadow .16s;
+}
+.avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 10px rgba(0,0,0,.22);
+}
+
+/* ── Post items — slide indicator on hover ─────────────────── */
+.post-item {
+  transition: background .15s, transform .15s, box-shadow .15s;
+}
+.post-item:hover {
+  transform: translateX(4px);
+  box-shadow: -3px 0 0 var(--primary-light);
+  background: var(--surface-alt);
+}
+
+/* ── Hist + post rows ──────────────────────────────────────── */
+.hist-row, .post-row {
+  transition: background .14s, transform .14s;
+}
+.hist-row:hover, .post-row:hover {
+  transform: translateX(3px);
+  background: #f6f9fd;
+}
+
+/* ── Feed items ────────────────────────────────────────────── */
+.feed-item {
+  transition: background .14s, transform .14s;
+}
+.feed-item:hover {
+  background: var(--surface-alt);
+  transform: translateX(3px);
+}
+
+/* ── Filter chips ──────────────────────────────────────────── */
+.filter-chip {
+  transition: all .18s cubic-bezier(.25,.46,.45,.94);
+}
+.filter-chip.active {
+  transform: scale(1.04);
+  box-shadow: 0 3px 10px rgba(27,79,114,.18);
+}
+.filter-chip:hover:not(.active) {
+  transform: translateY(-1px);
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ── Channel item — indent on hover ────────────────────────── */
+.channel-item {
+  transition: background .15s, padding-left .18s, color .15s;
+}
+.channel-item:hover {
+  padding-left: 18px;
+  color: var(--primary);
+}
+
+/* ── Partnership cards ─────────────────────────────────────── */
+.pship-card {
+  transition: box-shadow .2s, border-color .2s, transform .2s;
+}
+.pship-card:hover { transform: translateY(-3px); }
+
+/* ── Smooth focus rings ────────────────────────────────────── */
+.form-control, .chat-input {
+  transition: border-color .16s, box-shadow .2s, background .15s;
+}
+:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* ── Alerts slide in ───────────────────────────────────────── */
+.alert.show {
+  animation: gl-slide-up .2s cubic-bezier(.25,.46,.45,.94) both;
+}
+
+/* ── Modal entrance ────────────────────────────────────────── */
+.modal-box {
+  animation: gl-modal-in .24s cubic-bezier(.25,.46,.45,.94) both;
+}
+
+/* ── Skeleton shimmer ──────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #eef1f7 25%, #e2e8f2 50%, #eef1f7 75%);
+  background-size: 800px 100%;
+  animation: gl-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius);
+  color: transparent !important;
+  pointer-events: none;
+}
+
+/* ── Drawer overlay — blur on open ────────────────────────── */
+.gl-drawer-overlay.open { backdrop-filter: blur(3px); }
+
+/* ── Table rows ────────────────────────────────────────────── */
+tr { transition: background .12s; }
+
+/* ── Dash-pill pop on hover ────────────────────────────────── */
+.dash-pill {
+  transition: background .15s, transform .15s, border-color .15s;
+}
+.dash-pill:hover {
+  background: rgba(255,255,255,.16);
+  transform: translateY(-2px);
+}
+
+/* ── Drawer items ──────────────────────────────────────────── */
+.gl-drawer-item {
+  transition: background .14s, color .14s, padding-left .18s, border-left-color .18s;
+}
+.gl-drawer-item:hover { padding-left: 26px; }
+.gl-drawer-item.active { padding-left: 23px; }
+
+/* ── Number pop when loaded ────────────────────────────────── */
+.num-loaded {
+  animation: gl-pop .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* ── Reduced motion ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
