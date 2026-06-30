@@ -168,11 +168,6 @@ function _glOpenDrawer() {
   document.getElementById("gl-drawer").classList.add("open");
   document.getElementById("gl-drawer-overlay").classList.add("open");
   document.body.style.overflow = "hidden";
-  // Focus the search input when drawer opens
-  setTimeout(() => {
-    const inp = document.getElementById("gl-drawer-search-input");
-    if (inp) inp.focus();
-  }, 200);
 }
 function _glCloseDrawer() {
   document.getElementById("gl-drawer").classList.remove("open");
