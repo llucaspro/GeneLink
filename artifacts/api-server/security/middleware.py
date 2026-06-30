@@ -22,7 +22,7 @@ _IS_PROD = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
 # Allowed origins for CORS — add your Cloudflare/custom domain here
 _ALLOWED_ORIGINS = {o.strip() for o in os.environ.get(
     "ALLOWED_ORIGINS",
-    "https://genelink-fcz4.onrender.com,http://localhost:3000,http://localhost:10000"
+    "https://genelink.app,https://genelink-fcz4.onrender.com,http://localhost:3000,http://localhost:10000"
 ).split(",") if o.strip()}
 
 # External hosts whitelisted for server-side requests (SSRF protection)
