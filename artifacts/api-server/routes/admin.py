@@ -139,7 +139,7 @@ def verify_institution(inst_id):
 
         # ── Send approval e-mail in background thread ──────────────────────────
         if verified and inst.get("email"):
-            base_url = os.environ.get("BASE_URL", "https://genelink-fcz4.onrender.com")
+            base_url = os.environ.get("BASE_URL", "https://genelink.app")
             inst_name  = inst["name"]
             inst_short = inst["short_name"] or inst["name"]
             to_email   = inst["email"]
