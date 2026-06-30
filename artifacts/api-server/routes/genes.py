@@ -38,7 +38,7 @@ def search_gene():
     except http_req.exceptions.ConnectionError:
         return jsonify({"error": "Could not reach NCBI API. Check your connection."}), 502
     except Exception as e:
-        return jsonify({"error": f"NCBI search request failed: {str(e)}"}), 502
+        return jsonify({"error": "Serviço NCBI temporariamente indisponível. Tente novamente."}), 502
 
     esearch = search_data.get("esearchresult", {})
     id_list = esearch.get("idlist", [])
@@ -63,7 +63,7 @@ def search_gene():
     except http_req.exceptions.Timeout:
         return jsonify({"error": "NCBI summary API timeout. Please try again."}), 504
     except Exception as e:
-        return jsonify({"error": f"NCBI summary request failed: {str(e)}"}), 502
+        return jsonify({"error": "Serviço NCBI temporariamente indisponível. Tente novamente."}), 502
 
     result_map = summary_data.get("result", {})
     genes = []
