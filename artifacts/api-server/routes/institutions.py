@@ -122,7 +122,7 @@ def list_institutions():
         where = "WHERE " + " AND ".join(conditions)
         cur.execute(
             f"""SELECT i.id, i.name, i.short_name, i.type, i.city, i.state,
-                       i.description, i.website, i.avatar_initials, i.is_verified,
+                       i.description, i.website, i.logo_initials, i.is_verified,
                        (SELECT COUNT(*) FROM institution_members m WHERE m.institution_id = i.id) AS member_count
                FROM institutions i {where}
                ORDER BY i.name ASC LIMIT %s OFFSET %s""",
@@ -236,7 +236,7 @@ def create_institution():
         cur.execute(
             """INSERT INTO institutions
                (name, short_name, type, city, state, description, website, email, cnpj,
-                is_public, avatar_initials, created_by)
+                is_public, logo_initials, created_by)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                RETURNING *""",
             (name, short_name, inst_type, city, state, description, website, email, cnpj,
@@ -380,7 +380,7 @@ def my_institutions():
         cur = conn.cursor()
         cur.execute(
             """SELECT i.id, i.name, i.short_name, i.type, i.city, i.state,
-                      i.avatar_initials, i.is_verified, m.role
+                      i.logo_initials, i.is_verified, m.role
                FROM institution_members m
                JOIN institutions i ON i.id = m.institution_id
                WHERE m.user_id = %s
