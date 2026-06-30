@@ -9,6 +9,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  signOut,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -25,16 +26,20 @@ async function initFirebase() {
     firebaseApp = initializeApp(config);
     firebaseAuth = getAuth(firebaseApp);
 
-    // Exibe o botão de login social SOMENTE na aba de pesquisador (não instituição)
+    // Exibe botão Google apenas fora da aba de instituição
     window._firebaseReady = true;
     const instSection = document.getElementById("inst-section");
-    const socialDiv = document.getElementById("social-login");
+    const socialDiv   = document.getElementById("social-login");
     if (socialDiv && instSection && instSection.style.display !== "block") {
       socialDiv.style.display = "block";
     }
 
-    // Verifica se há sessão ativa (retorno de popup)
+    // onAuthStateChanged: NUNCA faz auto-login enquanto estiver na página de login.
+    // Só processa se a flag _allowFirebaseAutoLogin estiver ligada
+    // (ligada apenas quando o usuário clica explicitamente em "Entrar com Google").
     onAuthStateChanged(firebaseAuth, async (fbUser) => {
+      const onLoginPage = window.location.pathname.includes("/login");
+      if (onLoginPage) return; // página de login: ignora sessão persistida
       if (fbUser && !window._handlingFirebaseAuth) {
         window._handlingFirebaseAuth = true;
         await handleFirebaseUser(fbUser);
@@ -49,6 +54,7 @@ async function loginComGoogle() {
   if (!firebaseAuth) return;
   try {
     const provider = new GoogleAuthProvider();
+    // Popup: o resultado já chega aqui, não precisa do onAuthStateChanged
     const result = await signInWithPopup(firebaseAuth, provider);
     await handleFirebaseUser(result.user);
   } catch (e) {
@@ -82,6 +88,13 @@ async function handleFirebaseUser(fbUser) {
   }
 }
 
+// Faz logout completo do Firebase (chame junto com clearAuth)
+async function firebaseSignOut() {
+  try {
+    if (firebaseAuth) await signOut(firebaseAuth);
+  } catch (_) {}
+}
+
 // Cadastro com e-mail/senha + verificação via Firebase
 async function registerWithEmail(email, password) {
   if (!firebaseAuth) return null;
@@ -98,9 +111,10 @@ async function loginWithEmail(email, password) {
 }
 
 // Expõe funções globalmente para uso nos templates
-window.loginComGoogle = loginComGoogle;
+window.loginComGoogle    = loginComGoogle;
 window.registerWithEmail = registerWithEmail;
-window.loginWithEmail = loginWithEmail;
-window.getFirebaseAuth = () => firebaseAuth;
+window.loginWithEmail    = loginWithEmail;
+window.getFirebaseAuth   = () => firebaseAuth;
+window.firebaseSignOut   = firebaseSignOut;
 
 document.addEventListener("DOMContentLoaded", initFirebase);
