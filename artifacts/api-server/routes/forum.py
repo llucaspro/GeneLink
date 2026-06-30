@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from routes.auth import token_required
 from db.connection import get_connection
+from security.middleware import sanitize_string
 
 forum_bp = Blueprint("forum", __name__)
 
@@ -44,7 +45,7 @@ def get_posts():
         conn.close()
         return jsonify({"posts": [dict(r) for r in rows], "total": total, "page": page})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @forum_bp.route("/posts/<int:post_id>", methods=["GET"])
@@ -77,15 +78,15 @@ def get_post(post_id):
         result["comments"] = [dict(c) for c in comments]
         return jsonify(result)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @forum_bp.route("/posts", methods=["POST"])
 @token_required
 def create_post():
     data = request.get_json()
-    title = (data.get("title") or "").strip()
-    content = (data.get("content") or "").strip()
+    title = sanitize_string((data.get("title") or "").strip(), max_len=500)
+    content = sanitize_string((data.get("content") or "").strip(), max_len=5000)
     category = (data.get("category") or "General").strip()
 
     if not title or not content:
@@ -108,14 +109,14 @@ def create_post():
         conn.close()
         return jsonify(dict(post)), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @forum_bp.route("/posts/<int:post_id>/comments", methods=["POST"])
 @token_required
 def add_comment(post_id):
     data = request.get_json()
-    content = (data.get("content") or "").strip()
+    content = sanitize_string((data.get("content") or "").strip(), max_len=5000)
     if not content:
         return jsonify({"error": "Comment content is required"}), 400
 
@@ -143,7 +144,7 @@ def add_comment(post_id):
         result.update(dict(user))
         return jsonify(result), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @forum_bp.route("/posts/<int:post_id>", methods=["DELETE"])
@@ -168,7 +169,7 @@ def delete_post(post_id):
         conn.close()
         return jsonify({"message": "Post deleted"})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @forum_bp.route("/categories", methods=["GET"])
