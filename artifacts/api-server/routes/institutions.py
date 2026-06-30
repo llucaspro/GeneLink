@@ -252,7 +252,7 @@ def create_institution():
 
         # ── Send "cadastro recebido, em análise" email in background ──────────
         if email:
-            base_url = os.environ.get("BASE_URL", "https://genelink-fcz4.onrender.com")
+            base_url = os.environ.get("BASE_URL", "https://genelink.app")
             cnpj_display = _fmt_cnpj(cnpj) if cnpj else "N/A"
             try:
                 from routes.email_utils import send_institution_pending_email
