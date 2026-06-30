@@ -411,7 +411,7 @@ document.getElementById('inst-login-form').addEventListener('submit', async func
     localStorage.setItem('gl_inst', JSON.stringify(data.institution));
     window.location.href = '/gl/inst-dashboard';
   } catch (err) {
-    alertEl.className = 'alert alert-error';
+    alertEl.className = 'alert alert-error show';
     alertEl.textContent = err.message;
     btn.disabled = false; btn.textContent = 'Entrar como Instituição';
   }
@@ -550,7 +550,7 @@ document.getElementById('inst-form').addEventListener('submit', async function(e
     document.getElementById('inst-form-wrap').style.display = 'none';
     document.getElementById('inst-success').style.display = 'block';
   } catch (err) {
-    alertEl.className = 'alert alert-error'; alertEl.textContent = err.message;
+    alertEl.className = 'alert alert-error show'; alertEl.textContent = err.message;
     btn.disabled = false; btn.textContent = 'Cadastrar Instituição';
   }
 });
