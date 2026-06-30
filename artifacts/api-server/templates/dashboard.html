@@ -77,9 +77,15 @@
 }
 
 /* ── Tab panels ───────────────────────────────────────────── */
-.tab-panel { display: none; animation: fadeIn .18s ease; }
-.tab-panel.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: gl-slide-up .22s cubic-bezier(.25,.46,.45,.94) both; }
+
+/* ── Dash tab links ───────────────────────────────────────── */
+.dash-tab {
+  transition: color .16s, border-color .16s, background .16s;
+  border-radius: 6px 6px 0 0;
+}
+.dash-tab:hover { background: rgba(27,79,114,.04); }
 
 /* ── Metric row ───────────────────────────────────────────── */
 .metric-row {
@@ -421,5 +427,17 @@
 <script src="/gl/static/js/api.js"></script>
 <script src="/gl/static/js/dashboard.js"></script>
 <script src="/gl/static/js/tutorial.js"></script>
+<script>
+/* ── Force animation replay on tab switch ───────────────── */
+(function() {
+  const orig = window.switchTab;
+  if (typeof orig !== 'function') return;
+  window.switchTab = function(name) {
+    orig(name);
+    const panel = document.getElementById('tab-' + name);
+    if (panel) { panel.style.animation='none'; panel.offsetHeight; panel.style.animation=''; }
+  };
+})();
+</script>
 </body>
 </html>
