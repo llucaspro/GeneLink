@@ -1,4 +1,4 @@
-// Firebase Auth — Login social (Google) + Email/Senha com verificação
+// Firebase Auth — Login social (Google) + Email/Senha
 // Credenciais carregadas do backend via /gl/api/firebase-config
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -6,6 +6,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
@@ -15,6 +17,11 @@ import {
 
 let firebaseApp = null;
 let firebaseAuth = null;
+
+// Detecta mobile para usar redirect em vez de popup
+function _isMobile() {
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
 
 async function initFirebase() {
   try {
@@ -26,6 +33,23 @@ async function initFirebase() {
     firebaseApp = initializeApp(config);
     firebaseAuth = getAuth(firebaseApp);
 
+    // ── Processa resultado do redirect OAuth (mobile) ─────────────────────
+    // Após signInWithRedirect, o browser volta para esta página e
+    // getRedirectResult() retorna o usuário autenticado.
+    try {
+      const redirectResult = await getRedirectResult(firebaseAuth);
+      if (redirectResult && redirectResult.user) {
+        // Usuário voltou do redirect do Google — processa login
+        await handleFirebaseUser(redirectResult.user);
+        return; // Não precisa continuar a inicialização
+      }
+    } catch (redirectErr) {
+      // auth/cancelled-popup-request ou erro de redirect — ignora silenciosamente
+      if (redirectErr.code && redirectErr.code !== "auth/cancelled-popup-request") {
+        console.warn("Redirect result error:", redirectErr.code);
+      }
+    }
+
     // Exibe botão Google apenas fora da aba de instituição
     window._firebaseReady = true;
     const instSection = document.getElementById("inst-section");
@@ -34,12 +58,11 @@ async function initFirebase() {
       socialDiv.style.display = "block";
     }
 
-    // onAuthStateChanged: NUNCA faz auto-login enquanto estiver na página de login.
-    // Só processa se a flag _allowFirebaseAutoLogin estiver ligada
-    // (ligada apenas quando o usuário clica explicitamente em "Entrar com Google").
+    // onAuthStateChanged: na página de login, só processa se for resultado
+    // de redirect ativo (não sessão persistida antiga).
     onAuthStateChanged(firebaseAuth, async (fbUser) => {
       const onLoginPage = window.location.pathname.includes("/login");
-      if (onLoginPage) return; // página de login: ignora sessão persistida
+      if (onLoginPage) return; // ignora sessão persistida na página de login
       if (fbUser && !window._handlingFirebaseAuth) {
         window._handlingFirebaseAuth = true;
         await handleFirebaseUser(fbUser);
@@ -54,11 +77,23 @@ async function loginComGoogle() {
   if (!firebaseAuth) return;
   try {
     const provider = new GoogleAuthProvider();
-    // Popup: o resultado já chega aqui, não precisa do onAuthStateChanged
+
+    if (_isMobile()) {
+      // Mobile: usa redirect (popup não funciona em browsers mobile)
+      await signInWithRedirect(firebaseAuth, provider);
+      // Página recarrega — resultado tratado em initFirebase via getRedirectResult
+      return;
+    }
+
+    // Desktop: usa popup
     const result = await signInWithPopup(firebaseAuth, provider);
     await handleFirebaseUser(result.user);
   } catch (e) {
-    if (e.code !== "auth/popup-closed-by-user") {
+    const ignoredCodes = [
+      "auth/popup-closed-by-user",
+      "auth/cancelled-popup-request",
+    ];
+    if (!ignoredCodes.includes(e.code)) {
       alert("Erro ao entrar com Google: " + (e.message || e));
     }
   }
@@ -95,7 +130,7 @@ async function firebaseSignOut() {
   } catch (_) {}
 }
 
-// Cadastro com e-mail/senha + verificação via Firebase
+// Cadastro com e-mail/senha via Firebase
 async function registerWithEmail(email, password) {
   if (!firebaseAuth) return null;
   const cred = await createUserWithEmailAndPassword(firebaseAuth, email, password);

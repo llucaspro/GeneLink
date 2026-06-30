@@ -167,8 +167,12 @@ function setupForms() {
           if (code === "auth/too-many-requests") {
             showAlert(alertEl, "Muitas tentativas. Tente novamente mais tarde.", "error"); return;
           }
-          // Qualquer outro erro Firebase (invalid-credential, user-not-found, etc.)
-          // → cai no fallback da API abaixo
+          // Conta criada apenas com Google — não tem senha definida
+          if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+            // Tenta fallback via API (o backend chama Firebase REST para verificar)
+            // Se também falhar, mostramos mensagem orientando a usar Google
+          }
+          // Outros erros Firebase → cai no fallback da API abaixo
         }
       }
 
