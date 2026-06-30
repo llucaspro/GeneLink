@@ -43,7 +43,7 @@ def list_partnerships():
                 r["inst_verified"] = bool(r["inst_verified"])
         return jsonify({"partnerships": rows, "total": total})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @partnerships_bp.route("/partnerships", methods=["POST"])
@@ -76,7 +76,7 @@ def create_partnership():
         d["created_at"] = str(d.get("created_at") or "")
         return jsonify(d), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @partnerships_bp.route("/partnerships/<int:pid>", methods=["DELETE"])
@@ -90,7 +90,7 @@ def delete_partnership(pid):
         cur.close(); conn.close()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @partnerships_bp.route("/partnerships/<int:pid>/apply", methods=["POST"])
@@ -113,7 +113,7 @@ def apply_partnership(pid):
         cur.close(); conn.close()
         return jsonify({"ok": True}), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Institution Applications (Candidates) ────────────────────────────────────
@@ -145,7 +145,7 @@ def inst_applications():
             r["created_at"] = str(r.get("created_at") or "")
         return jsonify({"applications": rows})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Institution Members ──────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ def inst_members():
             if isinstance(r.get("is_member"), int): r["is_member"] = bool(r["is_member"])
         return jsonify({"members": rows})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @partnerships_bp.route("/inst/members/<int:user_id>/link", methods=["POST"])
@@ -204,7 +204,7 @@ def link_member(user_id):
         cur.close(); conn.close()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @partnerships_bp.route("/inst/members/<int:user_id>/unlink", methods=["POST"])
@@ -218,7 +218,7 @@ def unlink_member(user_id):
         cur.close(); conn.close()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Research Library ─────────────────────────────────────────────────────────
@@ -243,7 +243,7 @@ def inst_library():
             r["created_at"] = str(r.get("created_at") or "")
         return jsonify({"items": rows})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @partnerships_bp.route("/inst/library", methods=["POST"])
@@ -272,7 +272,7 @@ def create_library_item():
         cur.close(); conn.close()
         return jsonify(row), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @partnerships_bp.route("/inst/library/<int:item_id>", methods=["DELETE"])
@@ -286,7 +286,7 @@ def delete_library_item(item_id):
         cur.close(); conn.close()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 # ── Public library (researchers see items from their institution) ─────────────
@@ -316,4 +316,4 @@ def public_library(inst_id):
             r["created_at"] = str(r.get("created_at") or "")
         return jsonify({"items": rows, "is_member": is_member})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
