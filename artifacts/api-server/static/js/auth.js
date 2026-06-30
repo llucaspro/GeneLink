@@ -144,13 +144,13 @@ function setupForms() {
     hideAlert(alertEl);
 
     try {
-      // 1. Tenta Firebase apenas se disponível E e-mail verificado
+      // 1. Tenta Firebase se disponível — e-mail verificado ou não
       const fbAuth = typeof getFirebaseAuth === "function" ? getFirebaseAuth() : null;
       if (fbAuth && typeof loginWithEmail === "function") {
         try {
           const fbUser = await loginWithEmail(email, password);
-          if (fbUser && fbUser.emailVerified) {
-            // Conta Firebase verificada → usa token Firebase
+          if (fbUser) {
+            // Autenticou no Firebase → usa token Firebase (cria conta no DB se não existir)
             const idToken = await fbUser.getIdToken();
             const res = await fetch("/gl/api/firebase-auth", {
               method: "POST", headers: { "Content-Type": "application/json" },
@@ -162,7 +162,6 @@ function setupForms() {
             window.location.href = "/gl/dashboard";
             return;
           }
-          // fbUser existe mas e-mail não verificado → cai no fallback da API abaixo
         } catch (fbErr) {
           const code = fbErr.code || "";
           if (code === "auth/too-many-requests") {
