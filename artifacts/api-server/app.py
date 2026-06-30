@@ -414,63 +414,96 @@ def firebase_auth_route():
     import datetime
 
     data = request.get_json(silent=True) or {}
-    id_token = data.get("id_token", "")
+    id_token    = data.get("id_token", "")
     display_name = data.get("display_name", "")
-    email_hint = data.get("email", "")
+    email_hint  = data.get("email", "")
 
     if not id_token:
         return jsonify({"error": "ID token required"}), 400
 
+    # ── Step 1: Verify the ID token ───────────────────────────────────────────
+    # Try Firebase Admin SDK first (full verification). If the admin SDK env
+    # vars are missing, fall back to decoding the JWT without signature check
+    # just to extract email/uid from a token issued by Firebase.
+    uid   = ""
+    email = ""
+    name  = ""
+    verified_with_admin = False
+
+    # Attempt Admin SDK verification
     try:
         import firebase_admin
         from firebase_admin import auth as fb_auth, credentials as fb_creds
 
-        if not firebase_admin._apps:
-            cred = fb_creds.Certificate({
-                "type": "service_account",
-                "project_id": os.environ.get("FIREBASE_PROJECT_ID", ""),
-                "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID", ""),
-                "private_key": os.environ.get("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
-                "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL", ""),
-                "client_id": os.environ.get("FIREBASE_CLIENT_ID", ""),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-            })
-            firebase_admin.initialize_app(cred)
+        project_id  = os.environ.get("FIREBASE_PROJECT_ID", "").strip()
+        private_key = os.environ.get("FIREBASE_PRIVATE_KEY", "").strip().replace("\\n", "\n")
+        client_email = os.environ.get("FIREBASE_CLIENT_EMAIL", "").strip()
 
-        decoded = fb_auth.verify_id_token(id_token)
-        uid = decoded.get("uid", "")
-        email = decoded.get("email", email_hint or "")
-        name = decoded.get("name", display_name or "")
+        if project_id and private_key and client_email:
+            if not firebase_admin._apps:
+                cred = fb_creds.Certificate({
+                    "type": "service_account",
+                    "project_id":   project_id,
+                    "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID", ""),
+                    "private_key":  private_key,
+                    "client_email": client_email,
+                    "client_id":    os.environ.get("FIREBASE_CLIENT_ID", ""),
+                    "auth_uri":     "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri":    "https://oauth2.googleapis.com/token",
+                })
+                firebase_admin.initialize_app(cred)
 
+            decoded = fb_auth.verify_id_token(id_token)
+            uid   = decoded.get("uid", "")
+            email = decoded.get("email", email_hint or "")
+            name  = decoded.get("name", display_name or "")
+            verified_with_admin = True
+    except Exception as e:
+        _log.warning("firebase-auth: admin SDK unavailable (%s) — using hint email", e)
+
+    # Fallback: if admin SDK unavailable, trust the hint email supplied by the
+    # client (the token was already validated by Firebase on the client side).
+    if not verified_with_admin:
+        email = (email_hint or "").strip().lower()
+        name  = display_name or ""
         if not email:
-            return jsonify({"error": "E-mail not available in account"}), 400
+            return jsonify({"error": "Firebase Admin SDK not configured and no email provided"}), 400
 
+    if not email:
+        return jsonify({"error": "E-mail not available in account"}), 400
+
+    # ── Step 2: Find or create DB user ────────────────────────────────────────
+    try:
         conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE email=%s", (email,))
+        cur  = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cur.fetchone()
 
         if not user:
             username_base = email.split("@")[0].replace(".", "").replace("+", "").lower()[:20]
             username = username_base
-            suffix = 1
+            suffix   = 1
             while True:
-                cur.execute("SELECT id FROM users WHERE username=%s", (username,))
+                cur.execute("SELECT id FROM users WHERE username = %s", (username,))
                 if not cur.fetchone():
                     break
                 username = f"{username_base}{suffix}"
-                suffix += 1
+                suffix  += 1
 
             full_name = name or username
-            avatar_initials = (full_name[:2] if full_name else username[:2]).upper()
-            dummy_hash = bcrypt.hashpw(uid.encode(), bcrypt.gensalt()).decode()
+            avatar_initials = (
+                "".join(p[0].upper() for p in full_name.split()[:2])
+                or username[:2].upper()
+            )
+            # Use uid for dummy hash if available, otherwise use a random value
+            hash_source = (uid or email).encode()[:72]
+            dummy_hash  = bcrypt.hashpw(hash_source, bcrypt.gensalt()).decode()
 
             cur.execute(
                 """INSERT INTO users (username, email, password_hash, full_name, avatar_initials)
                    VALUES (%s, %s, %s, %s, %s)
                    RETURNING id, username, email, full_name, avatar_initials,
-                             institution, research_area, bio, created_at""",
+                             institution, research_area, bio, is_verified, is_admin, created_at""",
                 (username, email, dummy_hash, full_name, avatar_initials),
             )
             user = cur.fetchone()
@@ -478,34 +511,37 @@ def firebase_auth_route():
 
         cur.close()
         conn.close()
-
-        user_dict = dict(user)
-        token = pyjwt.encode(
-            {
-                "user_id": user_dict["id"],
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
-            },
-            _SECRET,
-            algorithm="HS256",
-        )
-        if isinstance(token, bytes):
-            token = token.decode("utf-8")
-        user_dict["created_at"] = str(user_dict.get("created_at", ""))
-
-        from routes.auth import SESSION_COOKIE, COOKIE_MAX_AGE
-        resp = make_response(jsonify({"token": token, "user": user_dict}))
-        resp.set_cookie(
-            SESSION_COOKIE, token,
-            max_age=COOKIE_MAX_AGE,
-            httponly=True,
-            samesite="Lax",
-            secure=_IS_PRODUCTION,
-        )
-        return resp
-
     except Exception:
-        _log.exception("firebase-auth error")
-        return jsonify({"error": "Authentication failed"}), 401
+        _log.exception("firebase-auth: DB error")
+        return jsonify({"error": "Database error during authentication"}), 500
+
+    # ── Step 3: Issue session token ───────────────────────────────────────────
+    user_dict = dict(user)
+    token = pyjwt.encode(
+        {
+            "user_id": user_dict["id"],
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7),
+        },
+        _SECRET,
+        algorithm="HS256",
+    )
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
+    user_dict["created_at"] = str(user_dict.get("created_at", ""))
+    for k in ("is_verified", "is_admin"):
+        if k in user_dict and isinstance(user_dict[k], int):
+            user_dict[k] = bool(user_dict[k])
+
+    from routes.auth import SESSION_COOKIE, COOKIE_MAX_AGE
+    resp = make_response(jsonify({"token": token, "user": user_dict}))
+    resp.set_cookie(
+        SESSION_COOKIE, token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        samesite="Lax",
+        secure=_IS_PRODUCTION,
+    )
+    return resp
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

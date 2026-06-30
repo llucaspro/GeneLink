@@ -162,6 +162,126 @@ def register():
     return resp
 
 
+# ── Firebase REST API fallback ────────────────────────────────────────────────
+
+def _try_firebase_login(email: str, password: str):
+    """
+    Verify credentials via Firebase REST API (no client-side Firebase needed).
+    If Firebase confirms the credentials, find or create the user in DB and
+    return a ready Flask response. Returns None if Firebase is not configured
+    or credentials are wrong.
+    """
+    import urllib.request as _req
+    import urllib.error as _err
+    import json as _json
+
+    api_key = os.environ.get("FIREBASE_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    # Call Firebase signInWithPassword REST endpoint
+    try:
+        payload = _json.dumps({
+            "email": email,
+            "password": password,
+            "returnSecureToken": True,
+        }).encode("utf-8")
+        http_req = _req.Request(
+            f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with _req.urlopen(http_req, timeout=8) as r:
+            fb_data = _json.loads(r.read())
+    except _err.HTTPError:
+        # Wrong credentials or Firebase error → treat as auth failure
+        return None
+    except Exception:
+        return None
+
+    if not fb_data.get("idToken"):
+        return None
+
+    fb_email = (fb_data.get("email") or email).strip().lower()
+    fb_name  = fb_data.get("displayName") or ""
+
+    # Find or create the user in DB
+    try:
+        conn = get_connection()
+        cur  = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE email = %s", (fb_email,))
+        user = cur.fetchone()
+
+        if not user:
+            # User exists in Firebase but never in DB — create them now
+            username_base = fb_email.split("@")[0].replace(".", "").replace("+", "").lower()[:20]
+            username = username_base
+            suffix   = 1
+            while True:
+                cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+                if not cur.fetchone():
+                    break
+                username = f"{username_base}{suffix}"
+                suffix  += 1
+
+            full_name = fb_name or username
+            initials  = (
+                "".join(p[0].upper() for p in full_name.split()[:2])
+                or username[:2].upper()
+            )
+            pw_hash  = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            is_admin = fb_email in ADMIN_EMAILS
+
+            cur.execute(
+                """INSERT INTO users
+                   (username, email, password_hash, full_name, avatar_initials, is_admin)
+                   VALUES (%s, %s, %s, %s, %s, %s)
+                   RETURNING id, username, email, full_name, avatar_initials, institution,
+                             research_area, bio, is_verified, is_admin, created_at""",
+                (username, fb_email, pw_hash, full_name, initials, is_admin),
+            )
+            user = cur.fetchone()
+            conn.commit()
+        else:
+            # User exists but might have a Firebase dummy hash — update to real hash
+            user = dict(user)
+            if not bcrypt.checkpw(password.encode("utf-8"), user["password_hash"].encode("utf-8")):
+                pw_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+                cur.execute("UPDATE users SET password_hash = %s WHERE email = %s", (pw_hash, fb_email))
+                conn.commit()
+
+        cur.close()
+        conn.close()
+    except Exception:
+        return None
+
+    user_dict   = dict(user)
+    token       = generate_token(user_dict["id"])
+    is_verified = bool(user_dict.get("is_verified", False))
+    is_admin    = bool(user_dict.get("is_admin", False)) or fb_email in ADMIN_EMAILS
+    user_dict["created_at"] = str(user_dict.get("created_at") or "")
+
+    resp = make_response(jsonify({
+        "token": token,
+        "user": {
+            "id":            user_dict["id"],
+            "username":      user_dict["username"],
+            "email":         user_dict["email"],
+            "full_name":     user_dict.get("full_name") or "",
+            "institution":   user_dict.get("institution") or "",
+            "research_area": user_dict.get("research_area") or "",
+            "avatar_initials": user_dict.get("avatar_initials") or "",
+            "bio":           user_dict.get("bio") or "",
+            "is_verified":   is_verified,
+            "is_admin":      is_admin,
+            "created_at":    user_dict["created_at"],
+        },
+    }))
+    _set_session_cookie(resp, token)
+    return resp
+
+
 # ── Login ─────────────────────────────────────────────────────────────────────
 
 @auth_bp.route("/login", methods=["POST"])
@@ -192,12 +312,22 @@ def login():
     # Uniform "wrong credentials" — no user enumeration
     _WRONG = "Invalid email or password"
     if not user:
-        # Still do a dummy hash check to avoid timing-based user enumeration
+        # Timing-safe dummy check
         bcrypt.checkpw(b"dummy", bcrypt.hashpw(b"dummy", bcrypt.gensalt()))
+        # Fallback: user might exist in Firebase but not in DB (e.g. DB write failed at register)
+        fb_resp = _try_firebase_login(raw_email, raw_password)
+        if fb_resp is not None:
+            login_guard.record_success(ip, raw_email)
+            return fb_resp
         login_guard.record_failure(ip, raw_email)
         return jsonify({"error": _WRONG}), 401
 
     if not bcrypt.checkpw(raw_password.encode("utf-8"), user["password_hash"].encode("utf-8")):
+        # Fallback: user in DB but has a Firebase dummy hash — verify via Firebase
+        fb_resp = _try_firebase_login(raw_email, raw_password)
+        if fb_resp is not None:
+            login_guard.record_success(ip, raw_email)
+            return fb_resp
         login_guard.record_failure(ip, raw_email)
         return jsonify({"error": _WRONG}), 401
 

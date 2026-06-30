@@ -220,12 +220,18 @@ function setupForms() {
           const code = fbErr.code || "";
           if (code === "auth/email-already-in-use") { showAlert(alertEl, "Este e-mail já está cadastrado.", "error"); return; }
           if (code === "auth/weak-password")        { showAlert(alertEl, "Senha fraca. Use pelo menos 8 caracteres.", "error"); return; }
+          // Other Firebase errors — fall through to direct API register below
         }
 
-        await fetch("/gl/api/register", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ full_name, username, email, password, institution, research_area }),
-        });
+        // Try to register in DB. Even if this fails the user can still log in
+        // because the backend /api/login has a Firebase fallback that creates
+        // the DB record on first login.
+        try {
+          await fetch("/gl/api/register", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ full_name, username, email, password, institution, research_area }),
+          });
+        } catch (_) { /* network error — login will self-heal via Firebase fallback */ }
 
         [document.getElementById("tab-login"), document.getElementById("tab-register"), document.getElementById("tab-inst")]
           .forEach(t => t && t.classList.remove("active"));
