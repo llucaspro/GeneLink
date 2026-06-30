@@ -3,7 +3,42 @@ document.addEventListener("DOMContentLoaded", () => {
     clearAuth();
     history.replaceState(null, "", "/gl/login");
   }
-  requireGuest();
+
+  // Se já está logado, mostra banner em vez de redirecionar
+  if (getToken()) {
+    const user = getUser();
+    const name = user ? (user.full_name || user.username || "sua conta") : "sua conta";
+    const header = document.querySelector(".auth-header");
+    if (header) {
+      const banner = document.createElement("div");
+      banner.style.cssText = [
+        "background:#fef9c3",
+        "border-bottom:1px solid #fde68a",
+        "padding:10px 20px",
+        "display:flex",
+        "align-items:center",
+        "justify-content:space-between",
+        "gap:10px",
+        "font-size:.83rem",
+        "color:#854d0e",
+        "flex-wrap:wrap",
+      ].join(";");
+      banner.innerHTML =
+        `<span>⚠️ Você está logado como <strong>${name}</strong></span>` +
+        `<div style="display:flex;gap:8px">` +
+          `<button onclick="window.location.href='/gl/dashboard'" ` +
+            `style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;` +
+            `padding:4px 12px;font-size:.78rem;cursor:pointer;font-weight:600">` +
+            `Ir ao Painel →</button>` +
+          `<button onclick="clearAuth();location.reload()" ` +
+            `style="background:#dc2626;color:#fff;border:none;border-radius:6px;` +
+            `padding:4px 12px;font-size:.78rem;cursor:pointer;font-weight:600">` +
+            `Sair e Testar</button>` +
+        `</div>`;
+      header.insertAdjacentElement("afterend", banner);
+    }
+  }
+
   setupTabs();
   setupForms();
   setupAvailabilityChecks();
@@ -109,7 +144,6 @@ function setupForms() {
         try {
           const fbUser = await loginWithEmail(email, password);
           if (fbUser) {
-            // Usuário existe no Firebase
             if (!fbUser.emailVerified) {
               showAlert(alertEl, "E-mail não verificado. Verifique sua caixa de entrada e clique no link antes de entrar.", "error");
               return;
@@ -127,18 +161,14 @@ function setupForms() {
           }
         } catch (fbErr) {
           const code = fbErr.code || "";
-          // Usuário não existe no Firebase → fallback para API (conta antiga)
-          if (code === "auth/user-not-found" || code === "auth/invalid-credential" || code === "auth/wrong-password") {
-            // continua para o fallback abaixo
-          } else if (code === "auth/too-many-requests") {
+          if (code === "auth/too-many-requests") {
             showAlert(alertEl, "Muitas tentativas. Tente novamente mais tarde.", "error"); return;
-          } else if (code) {
-            // outro erro Firebase → fallback para API
           }
+          // Outros erros: fallback para API
         }
       }
 
-      // 2. Fallback: login direto na API (contas existentes antes do Firebase)
+      // 2. Fallback: login direto na API
       const res  = await fetch("/gl/api/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -181,25 +211,21 @@ function setupForms() {
       const fbAuth = typeof getFirebaseAuth === "function" ? getFirebaseAuth() : null;
 
       if (fbAuth && typeof registerWithEmail === "function") {
-        // Cria no Firebase e envia verificação de e-mail
         try {
           await registerWithEmail(email, password);
         } catch (fbErr) {
           const code = fbErr.code || "";
           if (code === "auth/email-already-in-use") { showAlert(alertEl, "Este e-mail já está cadastrado.", "error"); return; }
           if (code === "auth/weak-password")        { showAlert(alertEl, "Senha fraca. Use pelo menos 8 caracteres.", "error"); return; }
-          // Outro erro Firebase: continua e registra apenas na API
         }
 
-        // Registra no banco de dados local
         await fetch("/gl/api/register", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ full_name, username, email, password, institution, research_area }),
         });
 
-        // Muda para aba de login e mostra aviso
-        const tabLogin   = document.getElementById("tab-login");
-        const secLogin   = document.getElementById("login-section");
+        const tabLogin    = document.getElementById("tab-login");
+        const secLogin    = document.getElementById("login-section");
         const secRegister = document.getElementById("register-section");
         if (tabLogin) {
           [document.getElementById("tab-login"), document.getElementById("tab-register"), document.getElementById("tab-inst")]
@@ -213,7 +239,7 @@ function setupForms() {
         return;
       }
 
-      // Fallback: cadastro direto na API (Firebase não configurado)
+      // Fallback: cadastro direto na API
       const res  = await fetch("/gl/api/register", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ full_name, username, email, password, institution, research_area }),
