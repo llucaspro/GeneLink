@@ -1,6 +1,8 @@
 import os
 import jwt
 import bcrypt
+import logging
+import threading
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import Blueprint, request, jsonify, make_response
@@ -11,6 +13,8 @@ from routes.security import (
     record_failed_login,
     clear_failed_logins,
 )
+
+_log = logging.getLogger("genelink.inst_auth")
 
 inst_auth_bp = Blueprint("inst_auth", __name__)
 
@@ -52,6 +56,97 @@ def inst_token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+# ── Institution Register ──────────────────────────────────────────────────────
+
+@inst_auth_bp.route("/institutions/register", methods=["POST"])
+@limiter.limit("5 per minute;10 per hour")
+def inst_register():
+    data = request.get_json(silent=True) or {}
+
+    name         = (data.get("name")         or "").strip()
+    short_name   = (data.get("short_name")   or "").strip()
+    cnpj         = (data.get("cnpj")         or "").strip() or None
+    email        = (data.get("email")        or "").strip().lower()
+    email_domain = (data.get("email_domain") or "").strip().lower() or None
+    password     = (data.get("password")     or "").strip()
+    inst_type    = (data.get("type")         or "").strip()
+    description  = (data.get("description")  or "").strip()
+    website      = (data.get("website")      or "").strip() or None
+    city         = (data.get("city")         or "").strip()
+    state        = (data.get("state")        or "").strip()
+
+    if not name:
+        return jsonify({"error": "Nome da instituição é obrigatório"}), 400
+    if not email or "@" not in email:
+        return jsonify({"error": "E-mail institucional é obrigatório"}), 400
+    if not password or len(password) < 8:
+        return jsonify({"error": "Senha deve ter pelo menos 8 caracteres"}), 400
+    if not city or not state:
+        return jsonify({"error": "Cidade e estado são obrigatórios"}), 400
+
+    logo_initials = (
+        "".join(w[0].upper() for w in (short_name or name).split()[:2])
+        or name[:2].upper()
+    )
+    password_hash = bcrypt.hashpw(
+        password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        # Duplicate checks
+        if cnpj:
+            cur.execute("SELECT id FROM institutions WHERE cnpj = %s", (cnpj,))
+            if cur.fetchone():
+                cur.close(); conn.close()
+                return jsonify({"error": "CNPJ já cadastrado"}), 409
+
+        cur.execute(
+            "SELECT id FROM institutions WHERE LOWER(email) = %s", (email,)
+        )
+        if cur.fetchone():
+            cur.close(); conn.close()
+            return jsonify({"error": "E-mail já cadastrado"}), 409
+
+        cur.execute(
+            """INSERT INTO institutions
+               (name, short_name, cnpj, email, email_domain, password_hash,
+                description, website, city, state, type, logo_initials,
+                is_verified, created_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, NOW())
+               RETURNING id, name, short_name, email""",
+            (name, short_name or None, cnpj, email, email_domain,
+             password_hash, description or None, website,
+             city, state, inst_type or None, logo_initials),
+        )
+        inst = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception:
+        _log.exception("inst_register DB error")
+        return jsonify({"error": "Erro ao cadastrar instituição. Tente novamente."}), 500
+
+    # Send "aguardando aprovação" e-mail in background
+    try:
+        from routes.email_utils import send_institution_pending_email
+        base_url = os.environ.get("BASE_URL", "https://genelink-fcz4.onrender.com")
+        threading.Thread(
+            target=send_institution_pending_email,
+            args=(name, cnpj or "N/A", email, base_url),
+            daemon=True,
+        ).start()
+        _log.info("Pending-approval email queued for institution '%s' -> %s", name, email)
+    except Exception:
+        _log.warning("Could not queue pending-approval email for '%s'", name)
+
+    return jsonify({"ok": True, "institution": inst}), 201
+
+
+# ── Institution Login ─────────────────────────────────────────────────────────
 
 @inst_auth_bp.route("/institutions/login", methods=["POST"])
 @limiter.limit("5 per minute;15 per hour")
@@ -120,6 +215,8 @@ def inst_login():
     return resp
 
 
+# ── Institution Me ────────────────────────────────────────────────────────────
+
 @inst_auth_bp.route("/institutions/me", methods=["GET"])
 @inst_token_required
 def inst_me():
@@ -146,6 +243,8 @@ def inst_me():
     except Exception:
         return jsonify({"error": "Erro ao carregar dados da instituicao"}), 500
 
+
+# ── Institution Logout ────────────────────────────────────────────────────────
 
 @inst_auth_bp.route("/institutions/logout", methods=["POST"])
 def inst_logout():
