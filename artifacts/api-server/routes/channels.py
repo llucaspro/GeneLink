@@ -22,7 +22,7 @@ def list_channels(inst_id):
         membership = _check_member(cur, inst_id, request.user_id)
         if not membership:
             cur.execute(
-                "SELECT id, name, description FROM institution_channels WHERE institution_id=%s AND is_public=1",
+                "SELECT id, name, description FROM institution_channels WHERE institution_id=%s AND is_public=TRUE",
                 (inst_id,),
             )
         else:
@@ -34,7 +34,7 @@ def list_channels(inst_id):
         cur.close(); conn.close()
         return jsonify({"channels": channels, "is_member": bool(membership)})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @channels_bp.route("/channels/<int:channel_id>/messages", methods=["GET"])
@@ -82,7 +82,7 @@ def get_messages(channel_id):
                 m["is_verified"] = bool(m["is_verified"])
         return jsonify({"messages": messages, "total": total})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @channels_bp.route("/channels/<int:channel_id>/messages", methods=["POST"])
@@ -127,7 +127,7 @@ def post_message(channel_id):
             "created_at": str(msg["created_at"]),
         }), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
 
 
 @channels_bp.route("/institutions/<int:inst_id>/channels", methods=["POST"])
@@ -159,4 +159,4 @@ def create_channel(inst_id):
         cur.close(); conn.close()
         return jsonify(dict(channel)), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Erro interno. Tente novamente."}), 500
