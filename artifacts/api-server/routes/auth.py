@@ -19,7 +19,7 @@ from routes.security import limiter  # shared rate-limiter instance
 _log = logging.getLogger("genelink.auth")
 SECRET_KEY = os.environ.get("SESSION_SECRET", "dev-only-insecure-secret-do-not-use-in-prod")
 
-_IS_PROD = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
+_IS_PROD = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION") or os.environ.get("VERCEL"))
 
 ADMIN_EMAILS = {"lucaspr1305@gmail.com"}
 
