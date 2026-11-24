@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 MAX_REQUEST_BYTES = 1 * 1024 * 1024          # 1 MB hard limit
 _MAX_STRING_DEFAULT = 2000
 
-_IS_PROD = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
+_IS_PROD = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION") or os.environ.get("VERCEL"))
 
 # Allowed origins for CORS — add your Cloudflare/custom domain here
 _ALLOWED_ORIGINS = {o.strip() for o in os.environ.get(
