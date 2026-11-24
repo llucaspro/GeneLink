@@ -18,8 +18,8 @@ _log = logging.getLogger("genelink.inst_auth")
 
 inst_auth_bp = Blueprint("inst_auth", __name__)
 
-SECRET_KEY = os.environ.get("SESSION_SECRET", "genelink-dev-secret")
-_IS_PRODUCTION = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION"))
+SECRET_KEY = os.environ.get("SESSION_SECRET", "dev-only-insecure-secret-do-not-use-in-prod")
+_IS_PRODUCTION = bool(os.environ.get("RENDER") or os.environ.get("PRODUCTION") or os.environ.get("VERCEL"))
 INST_COOKIE = "gl_inst_session"
 COOKIE_MAX_AGE = 24 * 60 * 60  # 24 horas
 
