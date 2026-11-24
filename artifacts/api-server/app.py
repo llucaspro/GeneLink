@@ -453,9 +453,6 @@ def firebase_auth_route():
 
     if not uid or not email:
         return jsonify({"error": "A conta Firebase não possui uma identidade válida."}), 401
-    if not decoded.get("email_verified", False):
-        return jsonify({"error": "Confirme seu e-mail antes de entrar com esta conta."}), 403
-
     # ── Step 2: Find or create the matching GeneLink account ──────────────────
     conn = None
     cur = None
