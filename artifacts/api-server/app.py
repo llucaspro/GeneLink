@@ -36,8 +36,6 @@ class PrefixMiddleware:
 
 
 from flask import Flask, render_template, jsonify, request, make_response
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 from security.middleware import (
     apply_security_headers,
@@ -48,6 +46,7 @@ from security.middleware import (
 )
 from db.init_db import init_db
 from db.connection import get_connection
+from routes.security import limiter
 from routes.auth import auth_bp, token_required, page_login_required
 from routes.genes import genes_bp
 from routes.forum import forum_bp
@@ -66,14 +65,9 @@ app.config["PROPAGATE_EXCEPTIONS"] = False
 app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BYTES
 
 # ── Rate Limiter ─────────────────────────────────────────────────────────────
-
-limiter = Limiter(
-    key_func=get_remote_ip,
-    app=app,
-    default_limits=["300 per minute"],
-    storage_uri="memory://",
-    strategy="fixed-window",
-)
+# Reuse the same Limiter instance imported by the route blueprints. This ensures
+# decorators declared in routes.auth / routes.inst_auth are attached to Flask.
+limiter.init_app(app)
 
 # ── Blueprints ───────────────────────────────────────────────────────────────
 
