@@ -380,120 +380,84 @@ def chat_send_message():
 
 # ── Firebase Config (rate-limited, no auth required by design) ───────────────
 
-@app.route("/api/firebase-config")
-@limiter.limit("30 per minute")
-def firebase_config():
-    api_key = os.environ.get("FIREBASE_API_KEY", "")
-    project_id = os.environ.get("FIREBASE_PROJECT_ID", "")
-    if not api_key or not project_id:
-        return jsonify({"error": "Firebase not configured"}), 404
-    return jsonify({
-        "apiKey": api_key,
-        "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN", ""),
-        "projectId": project_id,
-        "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", ""),
-        "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID", ""),
-        "appId": os.environ.get("FIREBASE_APP_ID", ""),
-        "measurementId": os.environ.get("FIREBASE_MEASUREMENT_ID", ""),
-    })
+@app.route("/api/supabase-config")
+def supabase_config():
+    """Expose only the public Supabase project URL and anon/publishable key."""
+    url = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+    anon_key = os.environ.get("SUPABASE_ANON_KEY", "").strip()
+    if not url or not anon_key:
+        return jsonify({"error": "Supabase não configurado."}), 503
+    return jsonify({"url": url, "anon_key": anon_key})
 
 
-# ── Firebase Auth ─────────────────────────────────────────────────────────────
-
-@app.route("/api/firebase-auth", methods=["POST"])
-@limiter.limit("10 per minute")
-def firebase_auth_route():
+@app.route("/api/supabase-auth", methods=["POST"])
+def supabase_auth_route():
+    """Verify a Supabase access token server-side, then issue a GeneLink session."""
+    import requests
     import jwt as pyjwt
-    import bcrypt
     import datetime
+    import bcrypt
 
     data = request.get_json(silent=True) or {}
-    id_token = data.get("id_token", "")
-    display_name = data.get("display_name", "")
+    access_token = (data.get("access_token") or "").strip()
+    if not access_token:
+        return jsonify({"error": "Token Supabase obrigatório."}), 400
 
-    if not id_token:
-        return jsonify({"error": "ID token required"}), 400
-
-    # Never trust identity claims supplied by the browser. A Firebase ID token
-    # must be verified cryptographically by the Admin SDK before issuing a
-    # GeneLink session or looking up an account.
-    project_id = os.environ.get("FIREBASE_PROJECT_ID", "").strip()
-    private_key = os.environ.get("FIREBASE_PRIVATE_KEY", "").strip().replace("\\n", "\n")
-    client_email = os.environ.get("FIREBASE_CLIENT_EMAIL", "").strip()
-
-    if not project_id or not private_key or not client_email:
-        _log.error("firebase-auth: Firebase Admin credentials are not configured")
-        return jsonify({"error": "Autenticação temporariamente indisponível."}), 503
+    url = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+    anon_key = os.environ.get("SUPABASE_ANON_KEY", "").strip()
+    if not url or not anon_key:
+        return jsonify({"error": "Autenticação Supabase não configurada."}), 503
 
     try:
-        import firebase_admin
-        from firebase_admin import auth as fb_auth, credentials as fb_creds
+        verified = requests.get(
+            url + "/auth/v1/user",
+            headers={"apikey": anon_key, "Authorization": "Bearer " + access_token},
+            timeout=8,
+        )
+        if verified.status_code != 200:
+            return jsonify({"error": "Sessão Supabase inválida ou expirada."}), 401
+        identity = verified.json()
+    except requests.RequestException:
+        _log.exception("supabase-auth: identity verification unavailable")
+        return jsonify({"error": "Não foi possível validar a sessão."}), 503
 
-        if not firebase_admin._apps:
-            cred = fb_creds.Certificate({
-                "type": "service_account",
-                "project_id": project_id,
-                "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID", ""),
-                "private_key": private_key,
-                "client_email": client_email,
-                "client_id": os.environ.get("FIREBASE_CLIENT_ID", ""),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-            })
-            firebase_admin.initialize_app(cred)
+    email = (identity.get("email") or "").strip().lower()
+    if not email or not identity.get("id"):
+        return jsonify({"error": "A conta Supabase não possui e-mail válido."}), 401
 
-        decoded = fb_auth.verify_id_token(id_token, check_revoked=True)
-    except Exception as exc:
-        _log.warning("firebase-auth: token verification failed (%s)", type(exc).__name__)
-        return jsonify({"error": "Token Firebase inválido ou expirado."}), 401
-
-    uid = decoded.get("uid", "")
-    email = (decoded.get("email") or "").strip().lower()
-    name = (decoded.get("name") or display_name or "").strip()
-
-    if not uid or not email:
-        return jsonify({"error": "A conta Firebase não possui uma identidade válida."}), 401
-    # ── Step 2: Find or create the matching GeneLink account ──────────────────
-    conn = None
-    cur = None
+    metadata = identity.get("user_metadata") or {}
+    full_name = (metadata.get("full_name") or metadata.get("name") or "").strip()
+    conn = cur = None
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+        cur.execute("SELECT * FROM users WHERE LOWER(email) = %s", (email,))
         user = cur.fetchone()
-
         if not user:
-            username_base = email.split("@")[0].replace(".", "").replace("+", "").lower()[:20]
-            username = username_base
-            suffix = 1
+            base = "".join(ch for ch in email.split("@")[0].lower() if ch.isalnum() or ch in "._-")[:40] or "researcher"
+            username, suffix = base, 1
             while True:
-                cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+                cur.execute("SELECT id FROM users WHERE LOWER(username) = LOWER(%s)", (username,))
                 if not cur.fetchone():
                     break
-                username = f"{username_base}{suffix}"
+                username = f"{base[:45]}{suffix}"
                 suffix += 1
-
-            full_name = name or username
-            avatar_initials = (
-                "".join(p[0].upper() for p in full_name.split()[:2])
-                or username[:2].upper()
-            )
+            name = full_name or username
+            initials = "".join(part[0].upper() for part in name.split()[:2]) or username[:2].upper()
             dummy_hash = bcrypt.hashpw(os.urandom(32), bcrypt.gensalt()).decode()
-
             cur.execute(
-                """INSERT INTO users (username, email, password_hash, full_name, avatar_initials)
-                   VALUES (%s, %s, %s, %s, %s)
-                   RETURNING id, username, email, full_name, avatar_initials,
-                             institution, research_area, bio, is_verified, is_admin, created_at""",
-                (username, email, dummy_hash, full_name, avatar_initials),
+                """INSERT INTO users (username, email, password_hash, full_name, avatar_initials, is_verified, is_admin)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)
+                   RETURNING *""",
+                (username, email, dummy_hash, name, initials, bool(identity.get("email_confirmed_at")), email in ADMIN_EMAILS),
             )
             user = cur.fetchone()
             conn.commit()
     except Exception:
-        _log.exception("firebase-auth: database error")
         if conn:
-            conn.close()
-        return jsonify({"error": "Erro ao autenticar. Tente novamente."}), 500
+            conn.rollback()
+        _log.exception("supabase-auth: local account mapping failed")
+        return jsonify({"error": "Não foi possível vincular sua conta ao GeneLink."}), 500
     finally:
         if cur:
             cur.close()
@@ -502,30 +466,20 @@ def firebase_auth_route():
 
     user_dict = dict(user)
     token = pyjwt.encode(
-        {
-            "user_id": user_dict["id"],
-            "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7),
-        },
-        _SECRET,
+        {"user_id": user_dict["id"],
+         "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)},
+        os.environ.get("SESSION_SECRET", ""),
         algorithm="HS256",
     )
     if isinstance(token, bytes):
         token = token.decode("utf-8")
-    user_dict["created_at"] = str(user_dict.get("created_at", ""))
+    user_dict["created_at"] = str(user_dict.get("created_at") or "")
     for key in ("is_verified", "is_admin"):
-        if key in user_dict and isinstance(user_dict[key], int):
-            user_dict[key] = bool(user_dict[key])
-
+        user_dict[key] = bool(user_dict.get(key, False))
     from routes.auth import SESSION_COOKIE, COOKIE_MAX_AGE
     resp = make_response(jsonify({"token": token, "user": user_dict}))
-    resp.set_cookie(
-        SESSION_COOKIE,
-        token,
-        max_age=COOKIE_MAX_AGE,
-        httponly=True,
-        samesite="Lax",
-        secure=_IS_PRODUCTION,
-    )
+    resp.set_cookie(SESSION_COOKIE, token, max_age=COOKIE_MAX_AGE, httponly=True,
+                    samesite="Lax", secure=_IS_PRODUCTION)
     return resp
 
 
