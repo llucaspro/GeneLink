@@ -11,13 +11,13 @@ Camadas implementadas:
 import re, html, time, os, traceback
 from collections import defaultdict
 from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from security.middleware import get_remote_ip
 
 # ── Rate Limiter ─────────────────────────────────────────────────────────────
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=get_remote_ip,
     default_limits=["200 per minute", "2000 per hour"],
-    storage_uri="memory://",
+    storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
     strategy="fixed-window",
 )
 
