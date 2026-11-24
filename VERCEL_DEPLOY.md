@@ -46,7 +46,7 @@ O código verifica a conectividade com PostgreSQL na inicialização da função
 
 ## Pontos de atenção antes de produção
 
-- O rate limiter e o bloqueio de tentativas atuais usam memória local. Em serverless, instâncias diferentes não compartilham esse estado e reinicializações o apagam. Para proteção consistente, configure um armazenamento compartilhado (por exemplo, Redis) antes de abrir o serviço amplamente.
+- O rate limiter aceita `RATELIMIT_STORAGE_URI` para armazenamento compartilhado (por exemplo, Redis). Sem essa variável, usa memória local; em serverless, instâncias diferentes não compartilham esse estado. O bloqueio customizado de login também permanece em memória e precisa ser movido para armazenamento compartilhado antes de produção ampla.
 - O backend abre conexões PostgreSQL diretamente por requisição. Configure o pooler recomendado pelo provedor do banco e acompanhe o limite de conexões.
 - Escolha a região da função próxima da região do PostgreSQL para reduzir latência.
 - O deploy não migra dados automaticamente: manter o mesmo `DATABASE_URL` preserva os registros; trocar de banco exige migração e validação dos dados.
