@@ -56,3 +56,11 @@ firebase-service-account.json
 .env.local
 .env.production
 
+
+
+# Secrets and deployment artifacts
+.env
+.env.*
+!.env.example
+*firebase-service-account*.json
+.vercel/
